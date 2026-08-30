@@ -174,7 +174,7 @@
         </div>
         <div class="field">
           <label for="prospect">Nom du prospect</label>
-          <input type="text" id="prospect" placeholder="Ex: Marc Dubois">
+          <input type="text" id="prospect" placeholder="Nom du prospect">
         </div>
         <div class="field">
           <label for="call-date">Date du call</label>
@@ -190,7 +190,7 @@
         <div class="field hide" id="commission-field">
           <label for="commission">Commission gagnée sur ce call (€)</label>
           <div class="row hide" id="offer-buttons-row" style="margin-bottom:8px"></div>
-          <input type="number" id="commission" min="0" step="1" placeholder="Ex: 224.55">
+          <input type="number" id="commission" min="0" step="1" placeholder="Montant en euros">
         </div>
         <div class="field">
           <label for="objection">Objection rencontrée (optionnel)</label>
@@ -207,7 +207,7 @@
         </div>
         <div class="field hide" id="objection-autre-field">
           <label for="objection-autre">Précise l'objection</label>
-          <input type="text" id="objection-autre" placeholder="Ex: doute sur la durée de l'accompagnement">
+          <input type="text" id="objection-autre" placeholder="Précise l'objection">
         </div>
         <div class="err" id="call-err">Renseigne l'infopreneur, le nom, le résultat, et la commission si le call est closé.</div>
         <button type="button" class="btn" onclick="addCall()">Ajouter le call</button>
@@ -220,7 +220,7 @@
         </div>
         <div class="field">
           <label for="prime-label">Intitulé (optionnel)</label>
-          <input type="text" id="prime-label" placeholder="Ex: Prime objectif mensuel">
+          <input type="text" id="prime-label" placeholder="Intitulé de la prime">
         </div>
         <div class="field">
           <label for="prime-date">Date</label>
@@ -228,7 +228,7 @@
         </div>
         <div class="field">
           <label for="prime-amount">Montant (€)</label>
-          <input type="number" id="prime-amount" min="0" step="1" placeholder="Ex: 200">
+          <input type="number" id="prime-amount" min="0" step="1" placeholder="Montant en euros">
         </div>
         <div class="err" id="prime-err">Renseigne l'infopreneur et le montant de la prime.</div>
         <button type="button" class="btn green" onclick="addPrime()">Ajouter la prime</button>
@@ -268,7 +268,7 @@
     <div class="card">
       <div class="cap">Ajouter un infopreneur</div>
       <div class="inline-edit" style="margin-top:12px">
-        <input type="text" id="new-client-name" placeholder="Ex: Dangelo, Théo, autre...">
+        <input type="text" id="new-client-name" placeholder="Nom de l'infopreneur">
         <button type="button" onclick="addClient()">Ajouter</button>
       </div>
       <div class="err" id="client-err" style="margin-top:10px">Donne un nom à l'infopreneur.</div>
@@ -668,7 +668,7 @@ function renderClientsSettings(){
         <div class="cap">Offres</div>
         <div id="offers-list-${c.id}" style="margin-top:8px">${renderOffersListHtml(c.id)}</div>
         <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
-          <input type="text" id="offer-name-${c.id}" placeholder="Nom de l'offre (ex: Académie)">
+          <input type="text" id="offer-name-${c.id}" placeholder="Nom de l'offre">
           <div class="inline-edit">
             <input type="number" id="offer-price-${c.id}" min="0" step="1" placeholder="Prix €">
             <input type="number" id="offer-pct-${c.id}" min="0" max="100" step="0.5" placeholder="% commission">
