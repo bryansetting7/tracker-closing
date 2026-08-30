@@ -4,243 +4,150 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Closing Dangelo">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Closing Tracker">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0f1117">
-<title>Closing Dangelo</title>
+<meta name="theme-color" content="#f7f6f3">
+<title>Closing Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; background: #0f1117; min-height: 100vh; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: #f4f6fb;
-    padding: max(20px, env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom)) 16px;
-  }
-  .wrap { max-width: 480px; margin: 0 auto; }
-  .header { margin-bottom: 16px; }
-  .header .eyebrow {
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    font-size: 11px;
-    color: #e94560;
-    font-weight: 700;
-    margin-bottom: 6px;
-  }
-  .header h1 { font-size: 20px; margin: 0; font-weight: 800; }
-
-  .tabs {
-    display: flex;
-    background: #1a1a2e;
-    border-radius: 10px;
-    padding: 4px;
-    margin-bottom: 18px;
-    border: 1px solid #262a45;
-  }
-  .tab-btn {
-    flex: 1;
-    padding: 10px;
-    border: none;
-    background: none;
-    color: #8890a4;
-    font-size: 13px;
-    font-weight: 700;
-    border-radius: 7px;
-    cursor: pointer;
-  }
-  .tab-btn.active { background: #e94560; color: #ffffff; }
-
-  .view { display: none; }
-  .view.active { display: block; }
-
-  .scoreboard {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    border-radius: 14px;
-    padding: 22px 20px;
-    margin-bottom: 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid #262a45;
-  }
-  .scoreboard .rate {
-    font-family: 'SF Mono', 'Courier New', monospace;
-    font-size: 40px;
-    font-weight: 800;
-    color: #e94560;
-    line-height: 1;
-  }
-  .scoreboard .rate-label {
-    font-size: 11px;
-    color: #8890a4;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-top: 6px;
-  }
-  .scoreboard .stats { text-align: right; font-family: 'SF Mono', 'Courier New', monospace; }
-  .scoreboard .stats div { font-size: 13px; color: #c9d1e0; margin-bottom: 4px; }
-  .scoreboard .stats b { color: #f4f6fb; font-weight: 700; }
-
-  .progress-card {
-    background: #1a1a2e;
-    border: 1px solid #262a45;
-    border-radius: 14px;
-    padding: 18px 20px;
-    margin-bottom: 14px;
-  }
-  .progress-card .top-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 10px;
-  }
-  .progress-card .gagne { font-size: 24px; font-weight: 800; color: #f4f6fb; }
-  .progress-card .objectif-txt { font-size: 13px; color: #8890a4; }
-  .progress-bar-bg {
-    background: #0f1117;
-    border-radius: 20px;
-    height: 10px;
-    overflow: hidden;
-    margin-bottom: 10px;
-  }
-  .progress-bar-fill {
-    background: #e94560;
-    height: 100%;
-    border-radius: 20px;
-    width: 0%;
-  }
-  .progress-card .detail { font-size: 12px; color: #c9d1e0; line-height: 1.6; }
-  .progress-card .detail b { color: #f4f6fb; }
-
-  .card {
-    background: #1a1a2e;
-    border: 1px solid #262a45;
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 14px;
-  }
-  .card h2 {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #8890a4;
-    margin: 0 0 12px 0;
-    font-weight: 700;
-  }
-  .field { margin-bottom: 10px; }
-  .field label { display: block; font-size: 12px; color: #8890a4; margin-bottom: 5px; }
-  input[type="text"], input[type="date"], input[type="number"] {
-    width: 100%;
-    background: #0f1117;
-    border: 1px solid #2c3050;
-    border-radius: 8px;
-    color: #f4f6fb;
-    padding: 10px 12px;
-    font-size: 16px;
-  }
-  input:focus { outline: none; border-color: #e94560; }
-  .toggle-row { display: flex; gap: 8px; }
-  .toggle-btn {
-    flex: 1;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #2c3050;
-    background: #0f1117;
-    color: #8890a4;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  .toggle-btn.active-closed { background: #12351f; border-color: #2ecc71; color: #2ecc71; }
-  .toggle-btn.active-perdu { background: #3a1620; border-color: #e94560; color: #e94560; }
-  #commission-field { display: none; }
-  .submit-btn {
-    width: 100%;
-    padding: 12px;
-    border-radius: 8px;
-    border: none;
-    background: #e94560;
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 4px;
-  }
-  .submit-btn:active { opacity: 0.85; }
-  .saved-msg { font-size: 12px; color: #2ecc71; margin-top: 8px; display: none; }
-  .error-msg { font-size: 12px; color: #e94560; margin-top: 6px; display: none; }
-  .call-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid #262a45;
-  }
-  .call-row:last-child { border-bottom: none; }
-  .call-info .name { font-size: 14px; font-weight: 700; color: #f4f6fb; }
-  .call-info .date { font-size: 11px; color: #8890a4; margin-top: 2px; }
-  .call-info .commission { font-size: 11px; color: #2ecc71; margin-top: 2px; font-weight: 700; }
-  .call-status {
-    font-size: 11px;
-    font-weight: 700;
-    padding: 4px 10px;
-    border-radius: 20px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .status-closed { background: #12351f; color: #2ecc71; }
-  .status-perdu { background: #3a1620; color: #e94560; }
-  .delete-btn {
-    background: none;
-    border: none;
-    color: #5a5f70;
-    font-size: 18px;
-    cursor: pointer;
-    padding: 4px 8px;
-    margin-left: 4px;
-  }
-  .empty-state { text-align: center; padding: 24px 0; color: #5a5f70; font-size: 13px; }
-  .row-with-delete { display: flex; align-items: center; }
-  .info-line { font-size: 12px; color: #8890a4; line-height: 1.6; margin-top: 10px; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:#f7f6f3}
+  body{font-family:'Instrument Sans',-apple-system,system-ui,sans-serif;color:#16181b;display:flex;flex-direction:column;min-height:100vh}
+  .head{padding:max(16px,env(safe-area-inset-top)) 20px 14px;border-bottom:1px solid #e6e3dd;background:#f7f6f3;position:sticky;top:0;z-index:5}
+  .head .top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+  .eyebrow{font-weight:600;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:#8a8880}
+  .scope{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:11px;color:#8a8880}
+  .head h1{font-size:21px;font-weight:600;letter-spacing:-.3px;margin:7px 0 0}
+  .seg{display:flex;gap:6px;background:#eeece7;border-radius:11px;padding:3px;margin-top:14px}
+  .seg button{flex:1;padding:8px 0;border:none;border-radius:9px;font:600 12.5px 'Instrument Sans';cursor:pointer;background:transparent;color:#8a8880}
+  .seg button.on{background:#fff;color:#16181b;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  main{flex:1;overflow:auto;padding:16px 20px 24px;max-width:520px;width:100%;margin:0 auto}
+  .stack{display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border:1px solid #e6e3dd;border-radius:18px;padding:20px}
+  .cap{font-weight:600;font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#8a8880}
+  .hero{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:40px;line-height:1;letter-spacing:-2px;margin-top:12px}
+  .split{display:flex;gap:18px;margin-top:16px;padding-top:14px;border-top:1px solid #efede8}
+  .split .col{display:flex;flex-direction:column;gap:3px}
+  .split .k{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:#8a8880}
+  .split .v{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:14px;color:#1c8a53}
+  .split .sep{width:1px;background:#efede8}
+  .duo{display:flex;gap:12px}
+  .duo .card{flex:1;padding:18px}
+  .big{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:32px;line-height:1;letter-spacing:-1.5px;margin-top:10px}
+  .of{font-family:'IBM Plex Mono',monospace;font-size:14px;color:#8a8880}
+  .sub{font-size:11px;color:#8a8880;margin-top:6px}
+  .bar{height:8px;border-radius:99px;background:#eeece7;overflow:hidden;margin-top:14px}
+  .bar div{height:100%;border-radius:99px;background:#1c8a53;width:0}
+  .detail{font-size:12.5px;line-height:1.65;color:#5f5e58;margin-top:14px;text-wrap:pretty}
+  .field{display:flex;flex-direction:column;gap:7px}
+  .field label{font-weight:500;font-size:11.5px;letter-spacing:.3px;color:#8a8880}
+  input{width:100%;padding:12px 13px;border:1px solid #e0ddd6;border-radius:11px;background:#fbfaf8;font-size:15px;color:#16181b;font-family:'Instrument Sans',sans-serif}
+  input[type=date],input[type=number]{font-family:'IBM Plex Mono',monospace}
+  input::placeholder{color:#b3b0a8}
+  input:focus{outline:none;border-color:#16181b}
+  .form{display:flex;flex-direction:column;gap:14px}
+  .row{display:flex;gap:8px}
+  .row button{flex:1;padding:12px 0;border-radius:11px;font:600 13px 'Instrument Sans';cursor:pointer;border:1px solid #e0ddd6;background:#fbfaf8;color:#8a8880}
+  .row button.on{background:#16181b;border-color:#16181b;color:#fff}
+  .row button.on-green{background:#e8f3ec;border-color:#1c8a53;color:#146b3f}
+  .row button.on-red{background:#fbeceb;border-color:#b83a2e;color:#b83a2e}
+  .btn{width:100%;padding:14px 0;border:none;border-radius:12px;background:#16181b;color:#fff;font:600 14px 'Instrument Sans';cursor:pointer}
+  .btn.green{background:#1c8a53}
+  .btn:active{opacity:.85}
+  .err{font-size:12px;line-height:1.5;color:#b83a2e;background:#fbeceb;border-radius:10px;padding:10px 12px;display:none}
+  .ok{font-weight:500;font-size:12.5px;color:#1c8a53;background:#e8f3ec;border-radius:11px;padding:11px 13px;display:none}
+  .note{font-size:12px;line-height:1.6;color:#8a8880;padding:0 4px;text-wrap:pretty}
+  .list{background:#fff;border:1px solid #e6e3dd;border-radius:18px;padding:6px 16px}
+  .item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 0;border-bottom:1px solid #f1efea}
+  .item:last-child{border-bottom:none}
+  .item .l{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .item .name-row{display:flex;align-items:center;gap:7px}
+  .item .name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tag{font-weight:600;font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;padding:3px 7px;border-radius:99px;background:#f1efea;color:#6c6a64}
+  .meta{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8a8880}
+  .meta .amt{font-weight:500;color:#1c8a53}
+  .r{display:flex;align-items:center;gap:4px;flex:none}
+  .status{font-weight:600;font-size:10px;letter-spacing:.7px;text-transform:uppercase;padding:5px 10px;border-radius:99px}
+  .status.closed{background:#e8f3ec;color:#146b3f}
+  .status.perdu{background:#fbeceb;color:#b83a2e}
+  .status.prime{background:#f1efea;color:#6c6a64}
+  .del{border:none;background:none;color:#b3b0a8;font-size:15px;cursor:pointer;padding:4px 2px}
+  .empty{text-align:center;padding:34px 0;font-size:13px;color:#a8a59e}
+  .tabbar{display:flex;border-top:1px solid #e6e3dd;background:#fbfaf8;padding:8px 8px calc(8px + env(safe-area-inset-bottom));position:sticky;bottom:0}
+  .tabbar button{flex:1;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;padding:6px 0;font:600 11px 'Instrument Sans';color:#a8a59e}
+  .tabbar .dot{width:16px;height:3px;border-radius:99px;background:transparent}
+  .tabbar button.on{color:#16181b}
+  .tabbar button.on .dot{background:#1c8a53}
+  .hide{display:none!important}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="header">
-    <div class="eyebrow">Closing Dangelo</div>
-    <h1>Tracker de calls</h1>
+
+<div class="head">
+  <div class="top">
+    <div class="eyebrow">Tracker de closing</div>
+    <div class="scope" id="scope">Dangelo + Théo</div>
   </div>
-
-  <div class="tabs">
-    <button type="button" class="tab-btn active" id="tab-suivi" onclick="switchTab('suivi')">Suivi</button>
-    <button type="button" class="tab-btn" id="tab-reglages" onclick="switchTab('reglages')">Réglages</button>
+  <h1 id="screen-title">Suivi</h1>
+  <div class="seg" id="filter">
+    <button type="button" class="on" onclick="setFilter('tous')">Tous</button>
+    <button type="button" onclick="setFilter('dangelo')">Dangelo</button>
+    <button type="button" onclick="setFilter('theo')">Théo</button>
   </div>
+</div>
 
-  <div class="view active" id="view-suivi">
-    <div class="scoreboard">
-      <div>
-        <div class="rate" id="rate">0%</div>
-        <div class="rate-label">Taux de closing</div>
-      </div>
-      <div class="stats">
-        <div><b id="stat-total">0</b> calls</div>
-        <div><b id="stat-closed">0</b> closés</div>
-      </div>
-    </div>
-
-    <div class="progress-card">
-      <div class="top-row">
-        <div class="gagne" id="gagne-txt">0 €</div>
-        <div class="objectif-txt">/ <span id="objectif-display">3 000 €</span></div>
-      </div>
-      <div class="progress-bar-bg">
-        <div class="progress-bar-fill" id="progress-bar"></div>
-      </div>
-      <div class="detail" id="progress-detail">Ajoute des calls closés pour suivre ta progression.</div>
-    </div>
-
+<main>
+  <!-- SUIVI -->
+  <section id="view-suivi" class="stack">
     <div class="card">
-      <h2>Ajouter un call</h2>
+      <div class="cap">Revenu total depuis le début</div>
+      <div class="hero" id="total">0 €</div>
+      <div class="split">
+        <div class="col"><span class="k">Commissions</span><span class="v" id="comm">0 €</span></div>
+        <div class="sep"></div>
+        <div class="col"><span class="k">Primes</span><span class="v" id="prim">0 €</span></div>
+      </div>
+    </div>
+    <div class="duo">
+      <div class="card">
+        <div class="cap">Taux de closing</div>
+        <div class="big" id="rate">0%</div>
+      </div>
+      <div class="card">
+        <div class="cap">Calls</div>
+        <div class="big"><span id="closed">0</span> <span class="of">/ <span id="count">0</span></span></div>
+        <div class="sub">closés sur passés</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="top" style="display:flex;align-items:baseline;justify-content:space-between">
+        <div class="cap">Objectif mensuel</div>
+        <div class="scope" id="pct">0%</div>
+      </div>
+      <div class="big" style="font-size:26px;letter-spacing:-1.2px"><span id="total2">0 €</span> <span class="of">/ <span id="objectif">0 €</span></span></div>
+      <div class="bar"><div id="bar"></div></div>
+      <div class="detail" id="detail">Ajoute des calls closés avec leur commission pour suivre ta progression.</div>
+    </div>
+  </section>
+
+  <!-- AJOUTER -->
+  <section id="view-ajouter" class="stack hide">
+    <div class="seg" id="mode">
+      <button type="button" class="on" onclick="setMode('call')">Un call</button>
+      <button type="button" onclick="setMode('prime')">Une prime</button>
+    </div>
+
+    <div class="card form" id="form-call">
+      <div class="field">
+        <label>Client</label>
+        <div class="row">
+          <button type="button" id="c-dangelo" onclick="setCallClient('dangelo')">Dangelo</button>
+          <button type="button" id="c-theo" onclick="setCallClient('theo')">Théo</button>
+        </div>
+      </div>
       <div class="field">
         <label for="prospect">Nom du prospect</label>
         <input type="text" id="prospect" placeholder="Ex: Marc Dubois">
@@ -251,218 +158,276 @@
       </div>
       <div class="field">
         <label>Résultat</label>
-        <div class="toggle-row">
-          <button type="button" class="toggle-btn" id="btn-closed" onclick="setResult('closed')">Closé</button>
-          <button type="button" class="toggle-btn" id="btn-perdu" onclick="setResult('perdu')">Perdu</button>
+        <div class="row">
+          <button type="button" id="r-closed" onclick="setResult('closed')">Closé</button>
+          <button type="button" id="r-perdu" onclick="setResult('perdu')">Perdu</button>
         </div>
       </div>
-      <div class="field" id="commission-field">
-        <label for="commission-input">Commission gagnée sur ce call (€)</label>
-        <input type="number" id="commission-input" min="0" step="1" placeholder="Ex: 224.55">
+      <div class="field hide" id="commission-field">
+        <label for="commission">Commission gagnée sur ce call (€)</label>
+        <input type="number" id="commission" min="0" step="1" placeholder="Ex: 224.55">
       </div>
-      <div class="error-msg" id="error-msg">Renseigne le nom, le résultat, et la commission si le call est closé.</div>
-      <button class="submit-btn" onclick="addCall()">Ajouter le call</button>
+      <div class="err" id="call-err">Renseigne le client, le nom, le résultat, et la commission si le call est closé.</div>
+      <button type="button" class="btn" onclick="addCall()">Ajouter le call</button>
     </div>
 
-    <div class="card">
-      <h2>Historique</h2>
-      <div id="call-list"></div>
-    </div>
-  </div>
-
-  <div class="view" id="view-reglages">
-    <div class="card">
-      <h2>Objectif mensuel</h2>
+    <div class="card form hide" id="form-prime">
       <div class="field">
-        <label for="objectif-input">Montant à atteindre (€)</label>
-        <input type="number" id="objectif-input" min="0" step="1" placeholder="3000">
+        <label>Client concerné</label>
+        <div class="row">
+          <button type="button" id="p-dangelo" onclick="setPrimeClient('dangelo')">Dangelo</button>
+          <button type="button" id="p-theo" onclick="setPrimeClient('theo')">Théo</button>
+        </div>
       </div>
-      <button class="submit-btn" onclick="saveObjectif()">Enregistrer l'objectif</button>
-      <div class="saved-msg" id="objectif-saved-msg">Objectif mis à jour.</div>
-      <div class="info-line">La commission de chaque call closé est saisie individuellement, donc la projection s'adapte automatiquement si tes offres ou tes taux changent.</div>
+      <div class="field">
+        <label for="prime-label">Intitulé (optionnel)</label>
+        <input type="text" id="prime-label" placeholder="Ex: Prime objectif mensuel">
+      </div>
+      <div class="field">
+        <label for="prime-date">Date</label>
+        <input type="date" id="prime-date">
+      </div>
+      <div class="field">
+        <label for="prime-amount">Montant (€)</label>
+        <input type="number" id="prime-amount" min="0" step="1" placeholder="Ex: 200">
+      </div>
+      <div class="err" id="prime-err">Renseigne le client et le montant de la prime.</div>
+      <button type="button" class="btn green" onclick="addPrime()">Ajouter la prime</button>
     </div>
-  </div>
-</div>
+    <div class="note" id="prime-note" style="display:none">Les primes comptent dans le revenu total et dans la progression vers l'objectif, jamais dans le taux de closing.</div>
+  </section>
+
+  <!-- HISTORIQUE -->
+  <section id="view-historique" class="hide">
+    <div class="list" id="list"></div>
+  </section>
+
+  <!-- REGLAGES -->
+  <section id="view-reglages" class="stack hide">
+    <div class="card form">
+      <div class="cap">Objectif mensuel — Dangelo</div>
+      <input type="number" id="obj-dangelo" min="0" step="1" placeholder="3000">
+      <button type="button" class="btn" onclick="saveObjectif('dangelo')">Enregistrer</button>
+    </div>
+    <div class="card form">
+      <div class="cap">Objectif mensuel — Théo</div>
+      <input type="number" id="obj-theo" min="0" step="1" placeholder="3000">
+      <button type="button" class="btn" onclick="saveObjectif('theo')">Enregistrer</button>
+    </div>
+    <div class="ok" id="saved">Objectif mis à jour.</div>
+    <div class="note">Sur le filtre « Tous », l'objectif affiché est la somme des deux objectifs.</div>
+  </section>
+</main>
+
+<nav class="tabbar">
+  <button type="button" class="on" id="tab-suivi" onclick="setTab('suivi')"><span class="dot"></span>Suivi</button>
+  <button type="button" id="tab-ajouter" onclick="setTab('ajouter')"><span class="dot"></span>Ajouter</button>
+  <button type="button" id="tab-historique" onclick="setTab('historique')"><span class="dot"></span>Historique</button>
+  <button type="button" id="tab-reglages" onclick="setTab('reglages')"><span class="dot"></span>Réglages</button>
+</nav>
 
 <script>
-const STORAGE_KEY = 'dangelo-calls';
-const OBJECTIF_KEY = 'dangelo-objectif';
-const DEFAULT_OBJECTIF = 3000;
+const KEYS = {calls:'closing-calls', primes:'closing-primes', dangelo:'closing-objectif-dangelo', theo:'closing-objectif-theo'};
+const TITLES = {suivi:'Suivi', ajouter:'Nouvelle entrée', historique:'Historique', reglages:'Réglages'};
+const TABS = ['suivi','ajouter','historique','reglages'];
 
-let calls = [];
-let selectedResult = null;
-let objectif = DEFAULT_OBJECTIF;
+let calls = [], primes = [];
+let objectifs = {dangelo:3000, theo:3000};
+let tab = 'suivi', filter = 'tous', mode = 'call';
+let callClient = null, callResult = null, primeClient = null;
 
-function todayStr() {
-  const d = new Date();
-  return d.toISOString().split('T')[0];
-}
+const $ = id => document.getElementById(id);
+const today = () => new Date().toISOString().split('T')[0];
+const euros = n => Math.round(n).toLocaleString('fr-FR').replace(/\u202f/g,' ') + ' €';
+const fmtDate = iso => { const p = String(iso).split('-'); return p[2]+'/'+p[1]+'/'+p[0].slice(2); };
+const clientLabel = c => c === 'dangelo' ? 'Dangelo' : 'Théo';
+const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
 
-function formatDate(iso) {
-  const parts = iso.split('-');
-  return parts[2] + '/' + parts[1] + '/' + parts[0].slice(2);
-}
-
-function formatEuros(n) {
-  return Math.round(n).toLocaleString('fr-FR') + ' €';
-}
-
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-function switchTab(tab) {
-  document.getElementById('tab-suivi').classList.toggle('active', tab === 'suivi');
-  document.getElementById('tab-reglages').classList.toggle('active', tab === 'reglages');
-  document.getElementById('view-suivi').classList.toggle('active', tab === 'suivi');
-  document.getElementById('view-reglages').classList.toggle('active', tab === 'reglages');
-}
-
-function setResult(result) {
-  selectedResult = result;
-  document.getElementById('btn-closed').className = 'toggle-btn' + (result === 'closed' ? ' active-closed' : '');
-  document.getElementById('btn-perdu').className = 'toggle-btn' + (result === 'perdu' ? ' active-perdu' : '');
-  document.getElementById('commission-field').style.display = result === 'closed' ? 'block' : 'none';
-}
-
-function render() {
-  const total = calls.length;
-  const closedCalls = calls.filter(c => c.result === 'closed');
-  const closed = closedCalls.length;
-  const rate = total > 0 ? Math.round((closed / total) * 100) : 0;
-
-  document.getElementById('rate').textContent = rate + '%';
-  document.getElementById('stat-total').textContent = total;
-  document.getElementById('stat-closed').textContent = closed;
-
-  const totalCommission = closedCalls.reduce((sum, c) => sum + (c.commission || 0), 0);
-  const pct = objectif > 0 ? Math.min(100, Math.round((totalCommission / objectif) * 100)) : 0;
-
-  document.getElementById('gagne-txt').textContent = formatEuros(totalCommission);
-  document.getElementById('objectif-display').textContent = formatEuros(objectif);
-  document.getElementById('progress-bar').style.width = pct + '%';
-
-  const detail = document.getElementById('progress-detail');
-  const remaining = Math.max(objectif - totalCommission, 0);
-
-  if (remaining === 0) {
-    detail.innerHTML = 'Objectif atteint. 🎯';
-  } else if (closed > 0) {
-    const avgCommission = totalCommission / closed;
-    const ventesRestantes = Math.ceil(remaining / avgCommission);
-    let text = 'Il te reste <b>' + formatEuros(remaining) + '</b> à générer, soit environ <b>' + ventesRestantes + (ventesRestantes > 1 ? ' ventes' : ' vente') + '</b> à ta commission moyenne actuelle (' + formatEuros(avgCommission) + '/vente).';
-    if (rate > 0) {
-      const callsRestants = Math.ceil(ventesRestantes / (rate / 100));
-      text += ' À ton taux de closing actuel (' + rate + '%), ça fait environ <b>' + callsRestants + (callsRestants > 1 ? ' calls restants' : ' call restant') + '</b>.';
-    }
-    detail.innerHTML = text;
-  } else {
-    detail.textContent = 'Ajoute des calls closés (avec la commission gagnée) pour suivre ta progression.';
-  }
-
-  const list = document.getElementById('call-list');
-  if (calls.length === 0) {
-    list.innerHTML = '<div class="empty-state">Aucun call enregistré pour l\'instant.</div>';
-    return;
-  }
-
-  const sorted = calls.slice().sort((a, b) => b.date.localeCompare(a.date));
-  list.innerHTML = sorted.map(c => `
-    <div class="call-row">
-      <div class="call-info">
-        <div class="name">${escapeHtml(c.prospect)}</div>
-        <div class="date">${formatDate(c.date)}</div>
-        ${c.result === 'closed' && c.commission ? '<div class="commission">+ ' + formatEuros(c.commission) + '</div>' : ''}
-      </div>
-      <div class="row-with-delete">
-        <span class="call-status ${c.result === 'closed' ? 'status-closed' : 'status-perdu'}">${c.result === 'closed' ? 'Closé' : 'Perdu'}</span>
-        <button class="delete-btn" aria-label="Supprimer" onclick="deleteCall('${c.id}')">✕</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function saveCalls() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(calls));
-}
-
-function addCall() {
-  const prospectInput = document.getElementById('prospect');
-  const dateInput = document.getElementById('call-date');
-  const commissionInput = document.getElementById('commission-input');
-  const errorMsg = document.getElementById('error-msg');
-  const prospect = prospectInput.value.trim();
-  const date = dateInput.value || todayStr();
-
-  if (!prospect || !selectedResult) {
-    errorMsg.style.display = 'block';
-    return;
-  }
-
-  let commission = 0;
-  if (selectedResult === 'closed') {
-    commission = parseFloat(commissionInput.value);
-    if (!commission || commission <= 0) {
-      errorMsg.style.display = 'block';
-      commissionInput.focus();
-      return;
-    }
-  }
-  errorMsg.style.display = 'none';
-
-  calls.push({
-    id: Date.now().toString(),
-    prospect: prospect,
-    date: date,
-    result: selectedResult,
-    commission: selectedResult === 'closed' ? commission : 0
+function setTab(t){
+  tab = t;
+  TABS.forEach(k => {
+    $('tab-'+k).classList.toggle('on', k === t);
+    $('view-'+k).classList.toggle('hide', k !== t);
   });
+  $('screen-title').textContent = TITLES[t];
+  $('filter').classList.toggle('hide', t !== 'suivi' && t !== 'historique');
+}
 
-  prospectInput.value = '';
-  dateInput.value = todayStr();
-  commissionInput.value = '';
-  setResult(null);
-  saveCalls();
+function setFilter(f){
+  filter = f;
+  const btns = $('filter').children;
+  ['tous','dangelo','theo'].forEach((k,i) => btns[i].classList.toggle('on', k === f));
+  $('scope').textContent = f === 'tous' ? 'Dangelo + Théo' : clientLabel(f);
   render();
 }
 
-function deleteCall(id) {
-  calls = calls.filter(c => c.id !== id);
-  saveCalls();
-  render();
+function setMode(m){
+  mode = m;
+  const btns = $('mode').children;
+  btns[0].classList.toggle('on', m === 'call');
+  btns[1].classList.toggle('on', m === 'prime');
+  $('form-call').classList.toggle('hide', m !== 'call');
+  $('form-prime').classList.toggle('hide', m !== 'prime');
+  $('prime-note').style.display = m === 'prime' ? 'block' : 'none';
 }
 
-function saveObjectif() {
-  const input = document.getElementById('objectif-input');
-  const val = parseFloat(input.value);
-  if (!val || val <= 0) {
-    input.focus();
+function setCallClient(c){
+  callClient = c;
+  $('c-dangelo').className = c === 'dangelo' ? 'on' : '';
+  $('c-theo').className = c === 'theo' ? 'on' : '';
+}
+
+function setPrimeClient(c){
+  primeClient = c;
+  $('p-dangelo').className = c === 'dangelo' ? 'on' : '';
+  $('p-theo').className = c === 'theo' ? 'on' : '';
+}
+
+function setResult(r){
+  callResult = r;
+  $('r-closed').className = r === 'closed' ? 'on-green' : '';
+  $('r-perdu').className = r === 'perdu' ? 'on-red' : '';
+  $('commission-field').classList.toggle('hide', r !== 'closed');
+}
+
+function scoped(arr){ return filter === 'tous' ? arr : arr.filter(x => x.client === filter); }
+
+function render(){
+  const cs = scoped(calls), ps = scoped(primes);
+  const closedCalls = cs.filter(c => c.result === 'closed');
+  const count = cs.length, closed = closedCalls.length;
+  const rate = count ? Math.round(closed / count * 100) : 0;
+  const comm = closedCalls.reduce((a,c) => a + (c.commission || 0), 0);
+  const prim = ps.reduce((a,p) => a + (p.montant || 0), 0);
+  const total = comm + prim;
+  const objectif = filter === 'tous' ? objectifs.dangelo + objectifs.theo : objectifs[filter];
+  const pct = objectif > 0 ? Math.min(100, Math.round(total / objectif * 100)) : 0;
+  const remaining = Math.max(objectif - total, 0);
+
+  $('total').textContent = euros(total);
+  $('total2').textContent = euros(total);
+  $('comm').textContent = euros(comm);
+  $('prim').textContent = euros(prim);
+  $('rate').textContent = rate + '%';
+  $('closed').textContent = closed;
+  $('count').textContent = count;
+  $('objectif').textContent = euros(objectif);
+  $('pct').textContent = pct + '%';
+  $('bar').style.width = pct + '%';
+
+  let detail;
+  if (remaining === 0) {
+    detail = 'Objectif atteint.';
+  } else if (closed > 0 && comm > 0) {
+    const avg = comm / closed;
+    const ventes = Math.ceil(remaining / avg);
+    detail = 'Il te reste ' + euros(remaining) + ' à générer, soit environ ' + ventes + (ventes > 1 ? ' ventes' : ' vente') + ' à ta commission moyenne (' + euros(avg) + '/vente).';
+    if (rate > 0) {
+      const cr = Math.ceil(ventes / (rate / 100));
+      detail += ' À ton taux actuel de ' + rate + '%, ça fait environ ' + cr + (cr > 1 ? ' calls restants' : ' call restant') + '.';
+    }
+  } else {
+    detail = 'Ajoute des calls closés avec leur commission pour suivre ta progression.';
+  }
+  $('detail').textContent = detail;
+
+  const items = cs.map(c => ({
+    date: c.date, name: esc(c.prospect), client: clientLabel(c.client),
+    amount: c.result === 'closed' && c.commission ? '+ ' + euros(c.commission) : '',
+    status: c.result === 'closed' ? 'Closé' : 'Perdu',
+    cls: c.result === 'closed' ? 'closed' : 'perdu',
+    del: "deleteCall('" + c.id + "')"
+  })).concat(ps.map(p => ({
+    date: p.date, name: p.label ? esc(p.label) : 'Prime', client: clientLabel(p.client),
+    amount: '+ ' + euros(p.montant), status: 'Prime', cls: 'prime',
+    del: "deletePrime('" + p.id + "')"
+  }))).sort((a,b) => String(b.date).localeCompare(String(a.date)));
+
+  $('list').innerHTML = items.length === 0
+    ? '<div class="empty">Aucun élément enregistré pour l\'instant.</div>'
+    : items.map(i => `
+      <div class="item">
+        <div class="l">
+          <div class="name-row"><span class="name">${i.name}</span><span class="tag">${i.client}</span></div>
+          <div class="meta"><span>${fmtDate(i.date)}</span><span class="amt">${i.amount}</span></div>
+        </div>
+        <div class="r">
+          <span class="status ${i.cls}">${i.status}</span>
+          <button class="del" aria-label="Supprimer" onclick="${i.del}">✕</button>
+        </div>
+      </div>`).join('');
+}
+
+function addCall(){
+  const prospect = $('prospect').value.trim();
+  const amount = parseFloat($('commission').value);
+  if (!prospect || !callClient || !callResult || (callResult === 'closed' && (!amount || amount <= 0))) {
+    $('call-err').style.display = 'block';
     return;
   }
-  objectif = val;
-  localStorage.setItem(OBJECTIF_KEY, JSON.stringify(objectif));
-  render();
-  const msg = document.getElementById('objectif-saved-msg');
-  msg.style.display = 'block';
-  setTimeout(() => { msg.style.display = 'none'; }, 2000);
+  $('call-err').style.display = 'none';
+  calls.push({
+    id: String(Date.now()), client: callClient, prospect: prospect,
+    date: $('call-date').value || today(), result: callResult,
+    commission: callResult === 'closed' ? amount : 0
+  });
+  localStorage.setItem(KEYS.calls, JSON.stringify(calls));
+  $('prospect').value = ''; $('commission').value = ''; $('call-date').value = today();
+  setCallClient(null); setResult(null);
+  render(); setTab('suivi');
 }
 
-function init() {
-  document.getElementById('call-date').value = todayStr();
+function addPrime(){
+  const amount = parseFloat($('prime-amount').value);
+  if (!primeClient || !amount || amount <= 0) {
+    $('prime-err').style.display = 'block';
+    return;
+  }
+  $('prime-err').style.display = 'none';
+  primes.push({
+    id: String(Date.now()), client: primeClient, label: $('prime-label').value.trim(),
+    date: $('prime-date').value || today(), montant: amount
+  });
+  localStorage.setItem(KEYS.primes, JSON.stringify(primes));
+  $('prime-label').value = ''; $('prime-amount').value = ''; $('prime-date').value = today();
+  setPrimeClient(null);
+  render(); setTab('suivi');
+}
 
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) calls = JSON.parse(stored);
-  } catch (e) { calls = []; }
+function deleteCall(id){
+  calls = calls.filter(c => c.id !== id);
+  localStorage.setItem(KEYS.calls, JSON.stringify(calls));
+  render();
+}
 
-  try {
-    const storedObjectif = localStorage.getItem(OBJECTIF_KEY);
-    if (storedObjectif) objectif = JSON.parse(storedObjectif);
-  } catch (e) { objectif = DEFAULT_OBJECTIF; }
+function deletePrime(id){
+  primes = primes.filter(p => p.id !== id);
+  localStorage.setItem(KEYS.primes, JSON.stringify(primes));
+  render();
+}
 
-  document.getElementById('objectif-input').value = objectif;
+function saveObjectif(which){
+  const input = $('obj-' + which);
+  const val = parseFloat(input.value);
+  if (!val || val <= 0) { input.focus(); return; }
+  objectifs[which] = val;
+  localStorage.setItem(KEYS[which], JSON.stringify(val));
+  render();
+  const msg = $('saved');
+  msg.style.display = 'block';
+  setTimeout(() => { msg.style.display = 'none'; }, 2200);
+}
+
+function init(){
+  const read = (k, fb) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch(e) { return fb; } };
+  calls = read(KEYS.calls, []) || [];
+  primes = read(KEYS.primes, []) || [];
+  objectifs.dangelo = read(KEYS.dangelo, 3000) || 3000;
+  objectifs.theo = read(KEYS.theo, 3000) || 3000;
+  $('obj-dangelo').value = objectifs.dangelo;
+  $('obj-theo').value = objectifs.theo;
+  $('call-date').value = today();
+  $('prime-date').value = today();
   render();
 }
 
