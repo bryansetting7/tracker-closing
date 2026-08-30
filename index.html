@@ -11,18 +11,14 @@
 <title>Closing Dangelo</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body {
-    margin: 0;
-    background: #0f1117;
-    min-height: 100vh;
-  }
+  html, body { margin: 0; background: #0f1117; min-height: 100vh; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color: #f4f6fb;
     padding: max(20px, env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom)) 16px;
   }
   .wrap { max-width: 480px; margin: 0 auto; }
-  .header { margin-bottom: 20px; }
+  .header { margin-bottom: 16px; }
   .header .eyebrow {
     text-transform: uppercase;
     letter-spacing: 2px;
@@ -31,11 +27,32 @@
     font-weight: 700;
     margin-bottom: 6px;
   }
-  .header h1 {
-    font-size: 20px;
-    margin: 0;
-    font-weight: 800;
+  .header h1 { font-size: 20px; margin: 0; font-weight: 800; }
+
+  .tabs {
+    display: flex;
+    background: #1a1a2e;
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 18px;
+    border: 1px solid #262a45;
   }
+  .tab-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: none;
+    color: #8890a4;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .tab-btn.active { background: #e94560; color: #ffffff; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
   .scoreboard {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     border-radius: 14px;
@@ -63,48 +80,38 @@
   .scoreboard .stats { text-align: right; font-family: 'SF Mono', 'Courier New', monospace; }
   .scoreboard .stats div { font-size: 13px; color: #c9d1e0; margin-bottom: 4px; }
   .scoreboard .stats b { color: #f4f6fb; font-weight: 700; }
-  .palier-btn {
-    width: 100%;
+
+  .progress-card {
     background: #1a1a2e;
     border: 1px solid #262a45;
-    border-radius: 12px;
-    padding: 14px 16px;
+    border-radius: 14px;
+    padding: 18px 20px;
     margin-bottom: 14px;
+  }
+  .progress-card .top-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    color: #f4f6fb;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  .palier-pill {
-    font-size: 11px;
-    font-weight: 700;
-    padding: 4px 12px;
-    border-radius: 20px;
-    background: #0f1117;
-    color: #8890a4;
-  }
-  .palier-pill.on { background: #12351f; color: #2ecc71; }
-  .section-label {
-    font-size: 13px;
-    font-weight: 700;
-    color: #8890a4;
-    margin: 0 0 8px 0;
-  }
-  .proj-card {
-    background: #1a1a2e;
-    border-radius: 12px;
-    padding: 14px 16px;
+    align-items: baseline;
     margin-bottom: 10px;
-    border: 2px solid transparent;
   }
-  .proj-card.active { border-color: #e94560; }
-  .proj-card.dim { opacity: 0.55; }
-  .proj-card .tag { font-size: 11px; color: #8890a4; margin-bottom: 4px; }
-  .proj-card .ventes { font-size: 20px; font-weight: 800; color: #f4f6fb; }
-  .proj-card .calls { font-size: 12px; color: #c9d1e0; margin-top: 4px; }
+  .progress-card .gagne { font-size: 24px; font-weight: 800; color: #f4f6fb; }
+  .progress-card .objectif-txt { font-size: 13px; color: #8890a4; }
+  .progress-bar-bg {
+    background: #0f1117;
+    border-radius: 20px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .progress-bar-fill {
+    background: #e94560;
+    height: 100%;
+    border-radius: 20px;
+    width: 0%;
+  }
+  .progress-card .detail { font-size: 12px; color: #c9d1e0; line-height: 1.6; }
+  .progress-card .detail b { color: #f4f6fb; }
+
   .card {
     background: #1a1a2e;
     border: 1px solid #262a45;
@@ -122,7 +129,7 @@
   }
   .field { margin-bottom: 10px; }
   .field label { display: block; font-size: 12px; color: #8890a4; margin-bottom: 5px; }
-  input[type="text"], input[type="date"] {
+  input[type="text"], input[type="date"], input[type="number"] {
     width: 100%;
     background: #0f1117;
     border: 1px solid #2c3050;
@@ -146,6 +153,7 @@
   }
   .toggle-btn.active-closed { background: #12351f; border-color: #2ecc71; color: #2ecc71; }
   .toggle-btn.active-perdu { background: #3a1620; border-color: #e94560; color: #e94560; }
+  #commission-field { display: none; }
   .submit-btn {
     width: 100%;
     padding: 12px;
@@ -159,6 +167,7 @@
     margin-top: 4px;
   }
   .submit-btn:active { opacity: 0.85; }
+  .saved-msg { font-size: 12px; color: #2ecc71; margin-top: 8px; display: none; }
   .error-msg { font-size: 12px; color: #e94560; margin-top: 6px; display: none; }
   .call-row {
     display: flex;
@@ -170,6 +179,7 @@
   .call-row:last-child { border-bottom: none; }
   .call-info .name { font-size: 14px; font-weight: 700; color: #f4f6fb; }
   .call-info .date { font-size: 11px; color: #8890a4; margin-top: 2px; }
+  .call-info .commission { font-size: 11px; color: #2ecc71; margin-top: 2px; font-weight: 700; }
   .call-status {
     font-size: 11px;
     font-weight: 700;
@@ -191,6 +201,7 @@
   }
   .empty-state { text-align: center; padding: 24px 0; color: #5a5f70; font-size: 13px; }
   .row-with-delete { display: flex; align-items: center; }
+  .info-line { font-size: 12px; color: #8890a4; line-height: 1.6; margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -200,70 +211,87 @@
     <h1>Tracker de calls</h1>
   </div>
 
-  <div class="scoreboard">
-    <div>
-      <div class="rate" id="rate">0%</div>
-      <div class="rate-label">Taux de closing</div>
-    </div>
-    <div class="stats">
-      <div><b id="stat-total">0</b> calls</div>
-      <div><b id="stat-closed">0</b> closés</div>
-    </div>
+  <div class="tabs">
+    <button type="button" class="tab-btn active" id="tab-suivi" onclick="switchTab('suivi')">Suivi</button>
+    <button type="button" class="tab-btn" id="tab-reglages" onclick="switchTab('reglages')">Réglages</button>
   </div>
 
-  <button type="button" class="palier-btn" id="palier-toggle" onclick="togglePalier()">
-    <span id="palier-label">Palier d'équipe des 5k : pas encore atteint</span>
-    <span class="palier-pill" id="palier-pill">Activer</span>
-  </button>
-
-  <p class="section-label">Objectif 3000 € ce mois-ci</p>
-  <div class="proj-card active" id="card-15">
-    <div class="tag">Taux à 15% (avant palier)</div>
-    <div class="ventes" id="ventes-restantes-15">14 ventes</div>
-    <div class="calls" id="calls-restants-15">Ajoute des calls pour estimer</div>
-  </div>
-  <div class="proj-card dim" id="card-20" style="margin-bottom: 20px;">
-    <div class="tag">Taux à 20% (palier d'équipe atteint)</div>
-    <div class="ventes" id="ventes-restantes-20">11 ventes</div>
-    <div class="calls" id="calls-restants-20">Ajoute des calls pour estimer</div>
-  </div>
-
-  <div class="card">
-    <h2>Ajouter un call</h2>
-    <div class="field">
-      <label for="prospect">Nom du prospect</label>
-      <input type="text" id="prospect" placeholder="Ex: Marc Dubois">
-    </div>
-    <div class="field">
-      <label for="call-date">Date du call</label>
-      <input type="date" id="call-date">
-    </div>
-    <div class="field">
-      <label>Résultat</label>
-      <div class="toggle-row">
-        <button type="button" class="toggle-btn" id="btn-closed" onclick="setResult('closed')">Closé</button>
-        <button type="button" class="toggle-btn" id="btn-perdu" onclick="setResult('perdu')">Perdu</button>
+  <div class="view active" id="view-suivi">
+    <div class="scoreboard">
+      <div>
+        <div class="rate" id="rate">0%</div>
+        <div class="rate-label">Taux de closing</div>
+      </div>
+      <div class="stats">
+        <div><b id="stat-total">0</b> calls</div>
+        <div><b id="stat-closed">0</b> closés</div>
       </div>
     </div>
-    <div class="error-msg" id="error-msg">Renseigne le nom et le résultat du call.</div>
-    <button class="submit-btn" onclick="addCall()">Ajouter le call</button>
+
+    <div class="progress-card">
+      <div class="top-row">
+        <div class="gagne" id="gagne-txt">0 €</div>
+        <div class="objectif-txt">/ <span id="objectif-display">3 000 €</span></div>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-bar"></div>
+      </div>
+      <div class="detail" id="progress-detail">Ajoute des calls closés pour suivre ta progression.</div>
+    </div>
+
+    <div class="card">
+      <h2>Ajouter un call</h2>
+      <div class="field">
+        <label for="prospect">Nom du prospect</label>
+        <input type="text" id="prospect" placeholder="Ex: Marc Dubois">
+      </div>
+      <div class="field">
+        <label for="call-date">Date du call</label>
+        <input type="date" id="call-date">
+      </div>
+      <div class="field">
+        <label>Résultat</label>
+        <div class="toggle-row">
+          <button type="button" class="toggle-btn" id="btn-closed" onclick="setResult('closed')">Closé</button>
+          <button type="button" class="toggle-btn" id="btn-perdu" onclick="setResult('perdu')">Perdu</button>
+        </div>
+      </div>
+      <div class="field" id="commission-field">
+        <label for="commission-input">Commission gagnée sur ce call (€)</label>
+        <input type="number" id="commission-input" min="0" step="1" placeholder="Ex: 224.55">
+      </div>
+      <div class="error-msg" id="error-msg">Renseigne le nom, le résultat, et la commission si le call est closé.</div>
+      <button class="submit-btn" onclick="addCall()">Ajouter le call</button>
+    </div>
+
+    <div class="card">
+      <h2>Historique</h2>
+      <div id="call-list"></div>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>Historique</h2>
-    <div id="call-list"></div>
+  <div class="view" id="view-reglages">
+    <div class="card">
+      <h2>Objectif mensuel</h2>
+      <div class="field">
+        <label for="objectif-input">Montant à atteindre (€)</label>
+        <input type="number" id="objectif-input" min="0" step="1" placeholder="3000">
+      </div>
+      <button class="submit-btn" onclick="saveObjectif()">Enregistrer l'objectif</button>
+      <div class="saved-msg" id="objectif-saved-msg">Objectif mis à jour.</div>
+      <div class="info-line">La commission de chaque call closé est saisie individuellement, donc la projection s'adapte automatiquement si tes offres ou tes taux changent.</div>
+    </div>
   </div>
 </div>
 
 <script>
 const STORAGE_KEY = 'dangelo-calls';
-const PALIER_KEY = 'dangelo-palier-atteint';
-const VENTES_NEEDED_15 = 14;
-const VENTES_NEEDED_20 = 11;
+const OBJECTIF_KEY = 'dangelo-objectif';
+const DEFAULT_OBJECTIF = 3000;
 
 let calls = [];
 let selectedResult = null;
-let palierAtteint = false;
+let objectif = DEFAULT_OBJECTIF;
 
 function todayStr() {
   const d = new Date();
@@ -275,84 +303,64 @@ function formatDate(iso) {
   return parts[2] + '/' + parts[1] + '/' + parts[0].slice(2);
 }
 
+function formatEuros(n) {
+  return Math.round(n).toLocaleString('fr-FR') + ' €';
+}
+
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
 }
 
+function switchTab(tab) {
+  document.getElementById('tab-suivi').classList.toggle('active', tab === 'suivi');
+  document.getElementById('tab-reglages').classList.toggle('active', tab === 'reglages');
+  document.getElementById('view-suivi').classList.toggle('active', tab === 'suivi');
+  document.getElementById('view-reglages').classList.toggle('active', tab === 'reglages');
+}
+
 function setResult(result) {
   selectedResult = result;
   document.getElementById('btn-closed').className = 'toggle-btn' + (result === 'closed' ? ' active-closed' : '');
   document.getElementById('btn-perdu').className = 'toggle-btn' + (result === 'perdu' ? ' active-perdu' : '');
-}
-
-function updatePalierUI() {
-  const label = document.getElementById('palier-label');
-  const pill = document.getElementById('palier-pill');
-  const card15 = document.getElementById('card-15');
-  const card20 = document.getElementById('card-20');
-
-  if (palierAtteint) {
-    label.textContent = "Palier d'équipe des 5k : atteint";
-    pill.textContent = 'Désactiver';
-    pill.className = 'palier-pill on';
-    card15.className = 'proj-card dim';
-    card20.className = 'proj-card active';
-  } else {
-    label.textContent = "Palier d'équipe des 5k : pas encore atteint";
-    pill.textContent = 'Activer';
-    pill.className = 'palier-pill';
-    card15.className = 'proj-card active';
-    card20.className = 'proj-card dim';
-  }
-}
-
-function togglePalier() {
-  palierAtteint = !palierAtteint;
-  updatePalierUI();
-  localStorage.setItem(PALIER_KEY, JSON.stringify(palierAtteint));
-}
-
-function updateProjection(rate, closed) {
-  const restantes15 = Math.max(VENTES_NEEDED_15 - closed, 0);
-  const restantes20 = Math.max(VENTES_NEEDED_20 - closed, 0);
-
-  document.getElementById('ventes-restantes-15').textContent = restantes15 + (restantes15 > 1 ? ' ventes' : ' vente');
-  document.getElementById('ventes-restantes-20').textContent = restantes20 + (restantes20 > 1 ? ' ventes' : ' vente');
-
-  const calls15 = document.getElementById('calls-restants-15');
-  const calls20 = document.getElementById('calls-restants-20');
-
-  if (restantes15 === 0) {
-    calls15.textContent = 'Objectif atteint';
-  } else if (rate > 0) {
-    const n = Math.ceil(restantes15 / (rate / 100));
-    calls15.textContent = n + (n > 1 ? ' calls restants' : ' call restant');
-  } else {
-    calls15.textContent = 'Ajoute des calls pour estimer';
-  }
-
-  if (restantes20 === 0) {
-    calls20.textContent = 'Objectif atteint';
-  } else if (rate > 0) {
-    const n = Math.ceil(restantes20 / (rate / 100));
-    calls20.textContent = n + (n > 1 ? ' calls restants' : ' call restant');
-  } else {
-    calls20.textContent = 'Ajoute des calls pour estimer';
-  }
+  document.getElementById('commission-field').style.display = result === 'closed' ? 'block' : 'none';
 }
 
 function render() {
   const total = calls.length;
-  const closed = calls.filter(c => c.result === 'closed').length;
+  const closedCalls = calls.filter(c => c.result === 'closed');
+  const closed = closedCalls.length;
   const rate = total > 0 ? Math.round((closed / total) * 100) : 0;
 
   document.getElementById('rate').textContent = rate + '%';
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-closed').textContent = closed;
 
-  updateProjection(rate, closed);
+  const totalCommission = closedCalls.reduce((sum, c) => sum + (c.commission || 0), 0);
+  const pct = objectif > 0 ? Math.min(100, Math.round((totalCommission / objectif) * 100)) : 0;
+
+  document.getElementById('gagne-txt').textContent = formatEuros(totalCommission);
+  document.getElementById('objectif-display').textContent = formatEuros(objectif);
+  document.getElementById('progress-bar').style.width = pct + '%';
+
+  const detail = document.getElementById('progress-detail');
+  const remaining = Math.max(objectif - totalCommission, 0);
+
+  if (remaining === 0) {
+    detail.innerHTML = 'Objectif atteint. 🎯';
+  } else if (closed > 0) {
+    const avgCommission = totalCommission / closed;
+    const ventesRestantes = Math.ceil(remaining / avgCommission);
+    let text = 'Il te reste <b>' + formatEuros(remaining) + '</b> à générer, soit environ <b>' + ventesRestantes + (ventesRestantes > 1 ? ' ventes' : ' vente') + '</b> à ta commission moyenne actuelle (' + formatEuros(avgCommission) + '/vente).';
+    if (rate > 0) {
+      const callsRestants = Math.ceil(ventesRestantes / (rate / 100));
+      text += ' À ton taux de closing actuel (' + rate + '%), ça fait environ <b>' + callsRestants + (callsRestants > 1 ? ' calls restants' : ' call restant') + '</b>.';
+    }
+    detail.innerHTML = text;
+  } else {
+    detail.textContent = 'Ajoute des calls closés (avec la commission gagnée) pour suivre ta progression.';
+  }
 
   const list = document.getElementById('call-list');
   if (calls.length === 0) {
@@ -366,6 +374,7 @@ function render() {
       <div class="call-info">
         <div class="name">${escapeHtml(c.prospect)}</div>
         <div class="date">${formatDate(c.date)}</div>
+        ${c.result === 'closed' && c.commission ? '<div class="commission">+ ' + formatEuros(c.commission) + '</div>' : ''}
       </div>
       <div class="row-with-delete">
         <span class="call-status ${c.result === 'closed' ? 'status-closed' : 'status-perdu'}">${c.result === 'closed' ? 'Closé' : 'Perdu'}</span>
@@ -382,6 +391,7 @@ function saveCalls() {
 function addCall() {
   const prospectInput = document.getElementById('prospect');
   const dateInput = document.getElementById('call-date');
+  const commissionInput = document.getElementById('commission-input');
   const errorMsg = document.getElementById('error-msg');
   const prospect = prospectInput.value.trim();
   const date = dateInput.value || todayStr();
@@ -390,17 +400,29 @@ function addCall() {
     errorMsg.style.display = 'block';
     return;
   }
+
+  let commission = 0;
+  if (selectedResult === 'closed') {
+    commission = parseFloat(commissionInput.value);
+    if (!commission || commission <= 0) {
+      errorMsg.style.display = 'block';
+      commissionInput.focus();
+      return;
+    }
+  }
   errorMsg.style.display = 'none';
 
   calls.push({
     id: Date.now().toString(),
     prospect: prospect,
     date: date,
-    result: selectedResult
+    result: selectedResult,
+    commission: selectedResult === 'closed' ? commission : 0
   });
 
   prospectInput.value = '';
   dateInput.value = todayStr();
+  commissionInput.value = '';
   setResult(null);
   saveCalls();
   render();
@@ -412,21 +434,35 @@ function deleteCall(id) {
   render();
 }
 
+function saveObjectif() {
+  const input = document.getElementById('objectif-input');
+  const val = parseFloat(input.value);
+  if (!val || val <= 0) {
+    input.focus();
+    return;
+  }
+  objectif = val;
+  localStorage.setItem(OBJECTIF_KEY, JSON.stringify(objectif));
+  render();
+  const msg = document.getElementById('objectif-saved-msg');
+  msg.style.display = 'block';
+  setTimeout(() => { msg.style.display = 'none'; }, 2000);
+}
+
 function init() {
   document.getElementById('call-date').value = todayStr();
+
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) calls = JSON.parse(stored);
-  } catch (e) {
-    calls = [];
-  }
+  } catch (e) { calls = []; }
+
   try {
-    const storedPalier = localStorage.getItem(PALIER_KEY);
-    if (storedPalier) palierAtteint = JSON.parse(storedPalier);
-  } catch (e) {
-    palierAtteint = false;
-  }
-  updatePalierUI();
+    const storedObjectif = localStorage.getItem(OBJECTIF_KEY);
+    if (storedObjectif) objectif = JSON.parse(storedObjectif);
+  } catch (e) { objectif = DEFAULT_OBJECTIF; }
+
+  document.getElementById('objectif-input').value = objectif;
   render();
 }
 
