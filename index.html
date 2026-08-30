@@ -9,11 +9,13 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#f7f6f3">
 <title>Closing Tracker</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%88%3C/text%3E%3C/svg%3E">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23f7f6f3'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle'%3E%F0%9F%93%88%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png?v=2">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 /*!
  * Chart.js v4.4.4
@@ -217,10 +219,13 @@
       </div>
 
       <div class="card" id="quick-add-card" style="margin-top:12px">
-        <div class="cap">Pré-remplir depuis un message</div>
-        <div class="note" style="margin-top:6px">Colle le message de rappel (WhatsApp, agenda…) : le prénom et la date seront repérés automatiquement.</div>
-        <textarea id="quick-paste" placeholder="Colle ici le message ou la description du rdv…" style="margin-top:10px"></textarea>
-        <button type="button" class="btn ghost" style="margin-top:10px" onclick="quickFillFromPaste()">Pré-remplir</button>
+        <div class="cap">Depuis Google Agenda</div>
+        <div class="note hide" id="agenda-not-configured" style="margin-top:6px">Connecte d'abord un identifiant Google dans Réglages pour afficher tes prochains rendez-vous ici.</div>
+        <div id="agenda-configured" class="hide">
+          <div class="note" style="margin-top:6px" id="agenda-note">Affiche tes rendez-vous des 7 prochains jours et pré-remplit le call en un clic.</div>
+          <button type="button" class="btn ghost" style="margin-top:10px" id="agenda-connect-btn" onclick="connectGoogleCalendar()">Connecter Google Agenda</button>
+          <div id="agenda-events" style="margin-top:10px"></div>
+        </div>
       </div>
 
       <div class="card form" id="form-call" style="margin-top:12px">
@@ -362,6 +367,15 @@
       <div class="cap">Tes infopreneurs</div>
       <div id="clients-list" style="margin-top:8px"></div>
       <div class="note" id="no-clients-note" style="margin-top:8px;display:none">Aucun infopreneur pour l'instant. Ajoute-en un ci-dessus.</div>
+    </div>
+
+    <div class="card">
+      <div class="cap">Google Agenda</div>
+      <div class="note" style="margin-top:8px">Pour voir tes prochains rendez-vous directement dans l'onglet Ajouter. Nécessite un identifiant OAuth Google (gratuit, à créer une fois dans Google Cloud Console).</div>
+      <div class="inline-edit" style="margin-top:10px">
+        <input type="text" id="google-client-id" placeholder="xxxxx.apps.googleusercontent.com">
+        <button type="button" onclick="saveGoogleClientId()">Enregistrer</button>
+      </div>
     </div>
 
     <div class="card">
@@ -1195,33 +1209,118 @@ function importData(input){
   reader.readAsText(file);
 }
 
-function quickFillFromPaste(){
-  const text = $('quick-paste').value.trim();
-  if (!text) return;
+const GOOGLE_CLIENT_ID_KEY = 'closing-google-client-id';
+let gisTokenClient = null;
+let googleAccessToken = null;
+let agendaEvents = [];
 
-  const nameMatch = text.match(/(?:Hello|Salut|Bonjour|Coucou)[\s,]+([A-ZÀ-ÖØ-Ý][a-zà-öø-ÿ'’-]+)/);
-  if (nameMatch) $('prospect').value = nameMatch[1];
+function saveGoogleClientId(){
+  const val = $('google-client-id').value.trim();
+  localStorage.setItem(GOOGLE_CLIENT_ID_KEY, val);
+  gisTokenClient = null; googleAccessToken = null;
+  updateAgendaCardVisibility();
+  const msg = $('saved');
+  msg.style.display = 'block';
+  setTimeout(() => { msg.style.display = 'none'; }, 2200);
+}
 
-  let dateVal = null;
-  if (/\baujourd'?hui\b/i.test(text)) {
-    dateVal = today();
-  } else if (/\bdemain\b/i.test(text)) {
-    const d = new Date(); d.setDate(d.getDate() + 1);
-    dateVal = d.toISOString().split('T')[0];
-  } else {
-    const dm = text.match(/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/);
-    if (dm) {
-      const day = dm[1].padStart(2, '0'), month = dm[2].padStart(2, '0');
-      let year = dm[3] ? dm[3] : String(new Date().getFullYear());
-      if (year.length === 2) year = '20' + year;
-      dateVal = year + '-' + month + '-' + day;
+function updateAgendaCardVisibility(){
+  const clientId = localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
+  $('agenda-not-configured').classList.toggle('hide', !!clientId);
+  $('agenda-configured').classList.toggle('hide', !clientId);
+}
+
+function initGoogleAuth(){
+  const clientId = localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
+  if (!clientId || !window.google || !window.google.accounts || !window.google.accounts.oauth2) return false;
+  gisTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: 'https://www.googleapis.com/auth/calendar.readonly',
+    callback: (resp) => {
+      if (resp && resp.access_token) {
+        googleAccessToken = resp.access_token;
+        $('agenda-connect-btn').textContent = 'Actualiser mes rendez-vous';
+        fetchUpcomingEvents();
+      } else {
+        $('agenda-events').innerHTML = '<div class="note">Connexion refusée ou annulée.</div>';
+      }
     }
-  }
-  if (dateVal) $('call-date').value = dateVal;
+  });
+  return true;
+}
 
-  $('quick-paste').value = '';
-  if (!nameMatch && !dateVal) {
-    alert('Prénom/date non repérés dans ce texte — remplis le formulaire manuellement.');
+function connectGoogleCalendar(){
+  if (!gisTokenClient && !initGoogleAuth()) {
+    $('agenda-events').innerHTML = '<div class="note">Google met un instant à se charger — réessaie dans quelques secondes, ou vérifie ton identifiant dans Réglages.</div>';
+    return;
+  }
+  $('agenda-events').innerHTML = '<div class="note">Connexion…</div>';
+  gisTokenClient.requestAccessToken({ prompt: googleAccessToken ? '' : 'consent' });
+}
+
+async function fetchUpcomingEvents(){
+  if (!googleAccessToken) return;
+  $('agenda-events').innerHTML = '<div class="note">Chargement de tes rendez-vous…</div>';
+  const now = new Date();
+  const in7d = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+  const url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
+    + '?timeMin=' + encodeURIComponent(now.toISOString())
+    + '&timeMax=' + encodeURIComponent(in7d.toISOString())
+    + '&singleEvents=true&orderBy=startTime&maxResults=20';
+  try {
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + googleAccessToken } });
+    if (res.status === 401) {
+      googleAccessToken = null;
+      $('agenda-events').innerHTML = '<div class="note">Session Google expirée — tape sur « Actualiser » pour te reconnecter.</div>';
+      $('agenda-connect-btn').textContent = 'Connecter Google Agenda';
+      return;
+    }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    agendaEvents = (data.items || []).filter(e => e.start && e.start.dateTime);
+    renderAgendaEvents();
+  } catch (e) {
+    $('agenda-events').innerHTML = '<div class="note">Erreur de connexion à Google Agenda. Réessaie.</div>';
+  }
+}
+
+function guessNameFromEvent(ev){
+  const text = (ev.description || '') + '\n' + (ev.summary || '');
+  let m = text.match(/(?:Nom|Pr[ée]nom|Prospect|Client)\s*:?[ \t]*([A-ZÀ-Ý][a-zà-ÿ'’-]+(?:[ \t]+[A-ZÀ-Ý][a-zà-ÿ'’-]+)?)/);
+  if (m) return m[1];
+  m = text.match(/(?:Hello|Salut|Bonjour|Coucou)[\s,]+([A-ZÀ-Ý][a-zà-ÿ'’-]+)/);
+  if (m) return m[1];
+  return '';
+}
+
+function renderAgendaEvents(){
+  const list = $('agenda-events');
+  if (!agendaEvents.length) {
+    list.innerHTML = '<div class="note">Aucun rendez-vous dans les 7 prochains jours.</div>';
+    return;
+  }
+  list.innerHTML = agendaEvents.map((e, i) => {
+    const d = new Date(e.start.dateTime);
+    const dateLabel = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const name = guessNameFromEvent(e) || e.summary || 'Rendez-vous';
+    return `<div class="client-row-item">
+      <div style="min-width:0">
+        <div class="cname" style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</div>
+        <div class="cobj">${dateLabel}</div>
+      </div>
+      <button type="button" class="btn ghost" style="width:auto;padding:8px 12px;flex:none" onclick="useAgendaEvent(${i})">Utiliser</button>
+    </div>`;
+  }).join('');
+}
+
+function useAgendaEvent(i){
+  const e = agendaEvents[i];
+  if (!e) return;
+  const name = guessNameFromEvent(e);
+  if (name) $('prospect').value = name;
+  if (e.start && e.start.dateTime) $('call-date').value = e.start.dateTime.split('T')[0];
+  if (!name) {
+    alert('Prénom non détecté automatiquement dans cet événement — vérifie et complète le champ toi-même.');
   }
 }
 
@@ -1243,6 +1342,8 @@ function init(){
   weeklyObjectifs = read(KEYS.weeklyObjectifs, {}) || {};
   $('call-date').value = today();
   $('prime-date').value = today();
+  $('google-client-id').value = localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || '';
+  updateAgendaCardVisibility();
   renderFilterChips();
   renderClientsSettings();
   render();
