@@ -52,6 +52,7 @@
   select{width:100%;padding:12px 13px;border:1px solid #e0ddd6;border-radius:11px;background:#fbfaf8;font-size:15px;color:#16181b;font-family:'Instrument Sans',sans-serif;appearance:none;-webkit-appearance:none}
   select:focus{outline:none;border-color:#16181b}
   .obj-tag{background:#fbf0e3;color:#a6650f}
+  .offer-tag{background:#e8f3ec;color:#146b3f}
   .form{display:flex;flex-direction:column;gap:14px}
   .row{display:flex;gap:8px;flex-wrap:wrap}
   .row button{flex:1;min-width:72px;padding:12px 10px;border-radius:11px;font:600 13px 'Instrument Sans';cursor:pointer;border:1px solid #e0ddd6;background:#fbfaf8;color:#8a8880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -188,6 +189,7 @@
         </div>
         <div class="field hide" id="commission-field">
           <label for="commission">Commission gagnée sur ce call (€)</label>
+          <div class="row hide" id="offer-buttons-row" style="margin-bottom:8px"></div>
           <input type="number" id="commission" min="0" step="1" placeholder="Ex: 224.55">
         </div>
         <div class="field">
@@ -292,15 +294,17 @@
 </nav>
 
 <script>
-const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2'};
+const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1'};
 const TITLES = {suivi:'Suivi', ajouter:'Nouvelle entrée', historique:'Historique', stats:'Statistiques', reglages:'Réglages'};
 const TABS = ['suivi','ajouter','historique','stats','reglages'];
 
 let clients = [];
 let calls = [], primes = [];
 let objectifs = {};
+let offers = {};
 let tab = 'suivi', filter = 'tous', mode = 'call';
 let callClientId = null, callResult = null, primeClientId = null;
+let selectedOfferId = null, selectedOfferName = null;
 
 const $ = id => document.getElementById(id);
 const today = () => new Date().toISOString().split('T')[0];
@@ -386,6 +390,7 @@ function renderClientButtons(){
 function setCallClient(id){
   callClientId = id;
   [...$('call-client-row').children].forEach(b => b.classList.toggle('on', b.dataset.cid === id));
+  updateOfferField();
 }
 
 function setPrimeClient(id){
@@ -398,6 +403,39 @@ function setResult(r){
   $('r-closed').className = r === 'closed' ? 'on-green' : '';
   $('r-perdu').className = r === 'perdu' ? 'on-red' : '';
   $('commission-field').classList.toggle('hide', r !== 'closed');
+  updateOfferField();
+}
+
+function updateOfferField(){
+  const row = $('offer-buttons-row');
+  const clientOffers = (callClientId && offers[callClientId]) ? offers[callClientId] : [];
+  selectedOfferId = null; selectedOfferName = null;
+
+  if (callResult !== 'closed' || !callClientId || clientOffers.length === 0) {
+    row.classList.add('hide');
+    row.innerHTML = '';
+    return;
+  }
+
+  row.classList.remove('hide');
+  const buttons = clientOffers.map(o =>
+    `<button type="button" data-oid="${o.id}" onclick="selectOffer('${callClientId}','${o.id}')">${esc(o.name)} · ${o.pct}%</button>`
+  ).join('');
+  row.innerHTML = buttons + `<button type="button" data-oid="libre" onclick="selectOffer('${callClientId}','libre')">Montant libre</button>`;
+}
+
+function selectOffer(clientId, offerId){
+  [...$('offer-buttons-row').children].forEach(b => b.classList.toggle('on', b.dataset.oid === offerId));
+  if (offerId === 'libre') {
+    selectedOfferId = null; selectedOfferName = null;
+    return;
+  }
+  const offer = (offers[clientId] || []).find(o => o.id === offerId);
+  if (!offer) return;
+  selectedOfferId = offerId;
+  selectedOfferName = offer.name;
+  const commission = offer.price * (offer.pct / 100);
+  $('commission').value = Math.round(commission * 100) / 100;
 }
 
 function scoped(arr){ return filter === 'tous' ? arr : arr.filter(x => x.clientId === filter); }
@@ -451,11 +489,12 @@ function render(){
     status: c.result === 'closed' ? 'Closé' : 'Perdu',
     cls: c.result === 'closed' ? 'closed' : 'perdu',
     objection: objectionLabel(c),
+    offerName: c.offerName || '',
     del: "deleteCall('" + c.id + "')"
   })).concat(ps.map(p => ({
     date: p.date, name: p.label ? esc(p.label) : 'Prime', client: clientName(p.clientId),
     amount: '+ ' + euros(p.montant), status: 'Prime', cls: 'prime',
-    objection: '',
+    objection: '', offerName: '',
     del: "deletePrime('" + p.id + "')"
   }))).sort((a,b) => String(b.date).localeCompare(String(a.date)));
 
@@ -464,7 +503,7 @@ function render(){
     : items.map(i => `
       <div class="item">
         <div class="l">
-          <div class="name-row"><span class="name">${i.name}</span><span class="tag">${esc(i.client)}</span>${i.objection ? '<span class="tag obj-tag">'+i.objection+'</span>' : ''}</div>
+          <div class="name-row"><span class="name">${i.name}</span><span class="tag">${esc(i.client)}</span>${i.offerName ? '<span class="tag offer-tag">'+esc(i.offerName)+'</span>' : ''}${i.objection ? '<span class="tag obj-tag">'+i.objection+'</span>' : ''}</div>
           <div class="meta"><span>${fmtDate(i.date)}</span><span class="amt">${i.amount}</span></div>
         </div>
         <div class="r">
@@ -487,12 +526,14 @@ function addCall(){
     id: String(Date.now()), clientId: callClientId, prospect: prospect,
     date: $('call-date').value || today(), result: callResult,
     commission: callResult === 'closed' ? amount : 0,
+    offerName: callResult === 'closed' ? selectedOfferName : null,
     objection: objectionVal,
     objectionDetail: objectionVal === 'autre' ? $('objection-autre').value.trim() : ''
   });
   localStorage.setItem(KEYS.calls, JSON.stringify(calls));
   $('prospect').value = ''; $('commission').value = ''; $('call-date').value = today();
   $('objection').value = ''; $('objection-autre').value = ''; $('objection-autre-field').classList.add('hide');
+  selectedOfferId = null; selectedOfferName = null;
   setCallClient(null); setResult(null);
   render(); setTab('suivi');
 }
@@ -565,6 +606,47 @@ function saveClientObjectif(id){
   setTimeout(() => { msg.style.display = 'none'; }, 2200);
 }
 
+function renderOffersListHtml(clientId){
+  const list = offers[clientId] || [];
+  if (list.length === 0) return '<div class="note">Aucune offre configurée pour l\'instant.</div>';
+  return list.map(o => `
+    <div class="client-row-item">
+      <div>
+        <div class="cname" style="font-size:13px">${esc(o.name)}</div>
+        <div class="cobj">${euros(o.price)} · ${o.pct}% = ${euros(o.price * o.pct / 100)}</div>
+      </div>
+      <button class="del" aria-label="Supprimer" onclick="deleteOffer('${clientId}','${o.id}')">✕</button>
+    </div>
+  `).join('');
+}
+
+function addOffer(clientId){
+  const nameInput = $('offer-name-' + clientId);
+  const priceInput = $('offer-price-' + clientId);
+  const pctInput = $('offer-pct-' + clientId);
+  const name = nameInput.value.trim();
+  const price = parseFloat(priceInput.value);
+  const pct = parseFloat(pctInput.value);
+
+  if (!name || !price || price <= 0 || !pct || pct <= 0) {
+    return;
+  }
+
+  if (!offers[clientId]) offers[clientId] = [];
+  offers[clientId].push({ id: newId(), name: name, price: price, pct: pct });
+  localStorage.setItem(KEYS.offers, JSON.stringify(offers));
+
+  nameInput.value = ''; priceInput.value = ''; pctInput.value = '';
+  renderClientsSettings();
+}
+
+function deleteOffer(clientId, offerId){
+  if (!offers[clientId]) return;
+  offers[clientId] = offers[clientId].filter(o => o.id !== offerId);
+  localStorage.setItem(KEYS.offers, JSON.stringify(offers));
+  renderClientsSettings();
+}
+
 function renderClientsSettings(){
   const listEl = $('clients-list');
   $('no-clients-note').style.display = clients.length === 0 ? 'block' : 'none';
@@ -580,6 +662,19 @@ function renderClientsSettings(){
       <div class="inline-edit">
         <input type="number" id="obj-input-${c.id}" min="0" step="1" placeholder="3000" value="${objectifs[c.id] || ''}">
         <button type="button" onclick="saveClientObjectif('${c.id}')">Enregistrer</button>
+      </div>
+
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid #f1efea">
+        <div class="cap">Offres</div>
+        <div id="offers-list-${c.id}" style="margin-top:8px">${renderOffersListHtml(c.id)}</div>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+          <input type="text" id="offer-name-${c.id}" placeholder="Nom de l'offre (ex: Académie)">
+          <div class="inline-edit">
+            <input type="number" id="offer-price-${c.id}" min="0" step="1" placeholder="Prix €">
+            <input type="number" id="offer-pct-${c.id}" min="0" max="100" step="0.5" placeholder="% commission">
+          </div>
+          <button type="button" class="btn ghost" onclick="addOffer('${c.id}')">Ajouter l'offre</button>
+        </div>
       </div>
     </div>
   `).join('');
@@ -730,6 +825,7 @@ function init(){
   calls = read(KEYS.calls, []) || [];
   primes = read(KEYS.primes, []) || [];
   objectifs = read(KEYS.objectifs, {}) || {};
+  offers = read(KEYS.offers, {}) || {};
   $('call-date').value = today();
   $('prime-date').value = today();
   renderFilterChips();
