@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;background:#f7f6f3}
@@ -19,10 +20,10 @@
   .head{padding:max(16px,env(safe-area-inset-top)) 20px 14px;border-bottom:1px solid #e6e3dd;background:#f7f6f3;position:sticky;top:0;z-index:5}
   .head .top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
   .eyebrow{font-weight:600;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:#8a8880}
-  .scope{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:11px;color:#8a8880}
+  .scope{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:11px;color:#8a8880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
   .head h1{font-size:21px;font-weight:600;letter-spacing:-.3px;margin:7px 0 0}
-  .seg{display:flex;gap:6px;background:#eeece7;border-radius:11px;padding:3px;margin-top:14px}
-  .seg button{flex:1;padding:8px 0;border:none;border-radius:9px;font:600 12.5px 'Instrument Sans';cursor:pointer;background:transparent;color:#8a8880}
+  .seg{display:flex;gap:6px;background:#eeece7;border-radius:11px;padding:3px;margin-top:14px;flex-wrap:wrap}
+  .seg button{flex:1;min-width:64px;padding:8px 6px;border:none;border-radius:9px;font:600 12.5px 'Instrument Sans';cursor:pointer;background:transparent;color:#8a8880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .seg button.on{background:#fff;color:#16181b;box-shadow:0 1px 2px rgba(0,0,0,.08)}
   main{flex:1;overflow:auto;padding:16px 20px 24px;max-width:520px;width:100%;margin:0 auto}
   .stack{display:flex;flex-direction:column;gap:12px}
@@ -48,14 +49,18 @@
   input[type=date],input[type=number]{font-family:'IBM Plex Mono',monospace}
   input::placeholder{color:#b3b0a8}
   input:focus{outline:none;border-color:#16181b}
+  select{width:100%;padding:12px 13px;border:1px solid #e0ddd6;border-radius:11px;background:#fbfaf8;font-size:15px;color:#16181b;font-family:'Instrument Sans',sans-serif;appearance:none;-webkit-appearance:none}
+  select:focus{outline:none;border-color:#16181b}
+  .obj-tag{background:#fbf0e3;color:#a6650f}
   .form{display:flex;flex-direction:column;gap:14px}
-  .row{display:flex;gap:8px}
-  .row button{flex:1;padding:12px 0;border-radius:11px;font:600 13px 'Instrument Sans';cursor:pointer;border:1px solid #e0ddd6;background:#fbfaf8;color:#8a8880}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .row button{flex:1;min-width:72px;padding:12px 10px;border-radius:11px;font:600 13px 'Instrument Sans';cursor:pointer;border:1px solid #e0ddd6;background:#fbfaf8;color:#8a8880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .row button.on{background:#16181b;border-color:#16181b;color:#fff}
   .row button.on-green{background:#e8f3ec;border-color:#1c8a53;color:#146b3f}
   .row button.on-red{background:#fbeceb;border-color:#b83a2e;color:#b83a2e}
   .btn{width:100%;padding:14px 0;border:none;border-radius:12px;background:#16181b;color:#fff;font:600 14px 'Instrument Sans';cursor:pointer}
   .btn.green{background:#1c8a53}
+  .btn.ghost{background:#fbfaf8;color:#16181b;border:1px solid #e0ddd6}
   .btn:active{opacity:.85}
   .err{font-size:12px;line-height:1.5;color:#b83a2e;background:#fbeceb;border-radius:10px;padding:10px 12px;display:none}
   .ok{font-weight:500;font-size:12.5px;color:#1c8a53;background:#e8f3ec;border-radius:11px;padding:11px 13px;display:none}
@@ -66,7 +71,7 @@
   .item .l{display:flex;flex-direction:column;gap:3px;min-width:0}
   .item .name-row{display:flex;align-items:center;gap:7px}
   .item .name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .tag{font-weight:600;font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;padding:3px 7px;border-radius:99px;background:#f1efea;color:#6c6a64}
+  .tag{font-weight:600;font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;padding:3px 7px;border-radius:99px;background:#f1efea;color:#6c6a64;white-space:nowrap}
   .meta{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8a8880}
   .meta .amt{font-weight:500;color:#1c8a53}
   .r{display:flex;align-items:center;gap:4px;flex:none}
@@ -82,6 +87,25 @@
   .tabbar button.on{color:#16181b}
   .tabbar button.on .dot{background:#1c8a53}
   .hide{display:none!important}
+  .client-row-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #f1efea}
+  .client-row-item:last-child{border-bottom:none}
+  .client-row-item .cname{font-weight:600;font-size:14px}
+  .client-row-item .cobj{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8a8880;margin-top:2px}
+  .inline-edit{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .inline-edit input{padding:8px 10px;font-size:13px}
+  .inline-edit button{padding:8px 12px;border-radius:9px;border:1px solid #e0ddd6;background:#fbfaf8;font:600 12px 'Instrument Sans';cursor:pointer;white-space:nowrap}
+  .chart-wrap{position:relative;height:220px;margin-top:14px}
+  .chart-empty{text-align:center;padding:40px 0;font-size:13px;color:#a8a59e}
+  #print-meta{display:none}
+  @media print{
+    .tabbar,.seg,#export-pdf-btn{display:none!important}
+    body{background:#fff}
+    .head{position:static;border-bottom:none;padding:0 0 14px}
+    main{overflow:visible;padding:0}
+    .card{break-inside:avoid;border:1px solid #ddd;box-shadow:none}
+    .chart-wrap{height:240px}
+    #print-meta{display:block!important;margin-bottom:16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f5e58}
+  }
 </style>
 </head>
 <body>
@@ -89,14 +113,10 @@
 <div class="head">
   <div class="top">
     <div class="eyebrow">Tracker de closing</div>
-    <div class="scope" id="scope">Dangelo + Théo</div>
+    <div class="scope" id="scope">Tous les infopreneurs</div>
   </div>
   <h1 id="screen-title">Suivi</h1>
-  <div class="seg" id="filter">
-    <button type="button" class="on" onclick="setFilter('tous')">Tous</button>
-    <button type="button" onclick="setFilter('dangelo')">Dangelo</button>
-    <button type="button" onclick="setFilter('theo')">Théo</button>
-  </div>
+  <div class="seg" id="filter"></div>
 </div>
 
 <main>
@@ -125,7 +145,7 @@
     <div class="card">
       <div class="top" style="display:flex;align-items:baseline;justify-content:space-between">
         <div class="cap">Objectif mensuel</div>
-        <div class="scope" id="pct">0%</div>
+        <div class="scope" id="pct" style="max-width:none">0%</div>
       </div>
       <div class="big" style="font-size:26px;letter-spacing:-1.2px"><span id="total2">0 €</span> <span class="of">/ <span id="objectif">0 €</span></span></div>
       <div class="bar"><div id="bar"></div></div>
@@ -135,66 +155,84 @@
 
   <!-- AJOUTER -->
   <section id="view-ajouter" class="stack hide">
-    <div class="seg" id="mode">
-      <button type="button" class="on" onclick="setMode('call')">Un call</button>
-      <button type="button" onclick="setMode('prime')">Une prime</button>
+    <div class="card" id="no-client-msg" style="display:none">
+      <div class="cap">Aucun infopreneur configuré</div>
+      <div class="note" style="margin-top:8px">Va dans Réglages pour ajouter le nom du ou des infopreneurs pour lesquels tu closes, avant d'ajouter un call ou une prime.</div>
     </div>
 
-    <div class="card form" id="form-call">
-      <div class="field">
-        <label>Client</label>
-        <div class="row">
-          <button type="button" id="c-dangelo" onclick="setCallClient('dangelo')">Dangelo</button>
-          <button type="button" id="c-theo" onclick="setCallClient('theo')">Théo</button>
-        </div>
+    <div id="ajouter-content">
+      <div class="seg" id="mode">
+        <button type="button" class="on" onclick="setMode('call')">Un call</button>
+        <button type="button" onclick="setMode('prime')">Une prime</button>
       </div>
-      <div class="field">
-        <label for="prospect">Nom du prospect</label>
-        <input type="text" id="prospect" placeholder="Ex: Marc Dubois">
-      </div>
-      <div class="field">
-        <label for="call-date">Date du call</label>
-        <input type="date" id="call-date">
-      </div>
-      <div class="field">
-        <label>Résultat</label>
-        <div class="row">
-          <button type="button" id="r-closed" onclick="setResult('closed')">Closé</button>
-          <button type="button" id="r-perdu" onclick="setResult('perdu')">Perdu</button>
-        </div>
-      </div>
-      <div class="field hide" id="commission-field">
-        <label for="commission">Commission gagnée sur ce call (€)</label>
-        <input type="number" id="commission" min="0" step="1" placeholder="Ex: 224.55">
-      </div>
-      <div class="err" id="call-err">Renseigne le client, le nom, le résultat, et la commission si le call est closé.</div>
-      <button type="button" class="btn" onclick="addCall()">Ajouter le call</button>
-    </div>
 
-    <div class="card form hide" id="form-prime">
-      <div class="field">
-        <label>Client concerné</label>
-        <div class="row">
-          <button type="button" id="p-dangelo" onclick="setPrimeClient('dangelo')">Dangelo</button>
-          <button type="button" id="p-theo" onclick="setPrimeClient('theo')">Théo</button>
+      <div class="card form" id="form-call" style="margin-top:12px">
+        <div class="field">
+          <label>Infopreneur</label>
+          <div class="row" id="call-client-row"></div>
         </div>
+        <div class="field">
+          <label for="prospect">Nom du prospect</label>
+          <input type="text" id="prospect" placeholder="Ex: Marc Dubois">
+        </div>
+        <div class="field">
+          <label for="call-date">Date du call</label>
+          <input type="date" id="call-date">
+        </div>
+        <div class="field">
+          <label>Résultat</label>
+          <div class="row">
+            <button type="button" id="r-closed" onclick="setResult('closed')">Closé</button>
+            <button type="button" id="r-perdu" onclick="setResult('perdu')">Perdu</button>
+          </div>
+        </div>
+        <div class="field hide" id="commission-field">
+          <label for="commission">Commission gagnée sur ce call (€)</label>
+          <input type="number" id="commission" min="0" step="1" placeholder="Ex: 224.55">
+        </div>
+        <div class="field">
+          <label for="objection">Objection rencontrée (optionnel)</label>
+          <select id="objection" onchange="onObjectionChange()">
+            <option value="">Aucune / pas notée</option>
+            <option value="prix">Prix / budget</option>
+            <option value="reflexion">Besoin de réfléchir</option>
+            <option value="proches">Avis des proches / jugement</option>
+            <option value="doute-resultat">Doute sur le résultat</option>
+            <option value="timing">Timing / pas le bon moment</option>
+            <option value="confiance">Manque de confiance envers l'offre</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
+        <div class="field hide" id="objection-autre-field">
+          <label for="objection-autre">Précise l'objection</label>
+          <input type="text" id="objection-autre" placeholder="Ex: doute sur la durée de l'accompagnement">
+        </div>
+        <div class="err" id="call-err">Renseigne l'infopreneur, le nom, le résultat, et la commission si le call est closé.</div>
+        <button type="button" class="btn" onclick="addCall()">Ajouter le call</button>
       </div>
-      <div class="field">
-        <label for="prime-label">Intitulé (optionnel)</label>
-        <input type="text" id="prime-label" placeholder="Ex: Prime objectif mensuel">
+
+      <div class="card form hide" id="form-prime" style="margin-top:12px">
+        <div class="field">
+          <label>Infopreneur concerné</label>
+          <div class="row" id="prime-client-row"></div>
+        </div>
+        <div class="field">
+          <label for="prime-label">Intitulé (optionnel)</label>
+          <input type="text" id="prime-label" placeholder="Ex: Prime objectif mensuel">
+        </div>
+        <div class="field">
+          <label for="prime-date">Date</label>
+          <input type="date" id="prime-date">
+        </div>
+        <div class="field">
+          <label for="prime-amount">Montant (€)</label>
+          <input type="number" id="prime-amount" min="0" step="1" placeholder="Ex: 200">
+        </div>
+        <div class="err" id="prime-err">Renseigne l'infopreneur et le montant de la prime.</div>
+        <button type="button" class="btn green" onclick="addPrime()">Ajouter la prime</button>
       </div>
-      <div class="field">
-        <label for="prime-date">Date</label>
-        <input type="date" id="prime-date">
-      </div>
-      <div class="field">
-        <label for="prime-amount">Montant (€)</label>
-        <input type="number" id="prime-amount" min="0" step="1" placeholder="Ex: 200">
-      </div>
-      <div class="err" id="prime-err">Renseigne le client et le montant de la prime.</div>
-      <button type="button" class="btn green" onclick="addPrime()">Ajouter la prime</button>
+      <div class="note" id="prime-note" style="display:none;margin-top:10px">Les primes comptent dans le revenu total et dans la progression vers l'objectif, jamais dans le taux de closing.</div>
     </div>
-    <div class="note" id="prime-note" style="display:none">Les primes comptent dans le revenu total et dans la progression vers l'objectif, jamais dans le taux de closing.</div>
   </section>
 
   <!-- HISTORIQUE -->
@@ -202,20 +240,46 @@
     <div class="list" id="list"></div>
   </section>
 
+  <!-- STATS -->
+  <section id="view-stats" class="stack hide">
+    <div id="print-meta"></div>
+    <button type="button" class="btn ghost" id="export-pdf-btn" onclick="exportPdf()">Exporter en PDF</button>
+    <div class="card">
+      <div class="cap">Revenu par mois</div>
+      <div class="chart-wrap"><canvas id="chart-revenu"></canvas></div>
+      <div class="chart-empty hide" id="chart-revenu-empty">Pas encore assez de données pour un graphique.</div>
+    </div>
+    <div class="card">
+      <div class="cap">Objections les plus fréquentes</div>
+      <div class="chart-wrap"><canvas id="chart-objections"></canvas></div>
+      <div class="chart-empty hide" id="chart-objections-empty">Ajoute des objections sur tes calls pour voir apparaître ce graphique.</div>
+    </div>
+    <div class="card">
+      <div class="cap">Taux de closing par infopreneur</div>
+      <div class="chart-wrap"><canvas id="chart-taux"></canvas></div>
+      <div class="chart-empty hide" id="chart-taux-empty">Ajoute des infopreneurs et des calls pour voir ce graphique.</div>
+    </div>
+  </section>
+
   <!-- REGLAGES -->
   <section id="view-reglages" class="stack hide">
-    <div class="card form">
-      <div class="cap">Objectif mensuel — Dangelo</div>
-      <input type="number" id="obj-dangelo" min="0" step="1" placeholder="3000">
-      <button type="button" class="btn" onclick="saveObjectif('dangelo')">Enregistrer</button>
+    <div class="card">
+      <div class="cap">Ajouter un infopreneur</div>
+      <div class="inline-edit" style="margin-top:12px">
+        <input type="text" id="new-client-name" placeholder="Ex: Dangelo, Théo, autre...">
+        <button type="button" onclick="addClient()">Ajouter</button>
+      </div>
+      <div class="err" id="client-err" style="margin-top:10px">Donne un nom à l'infopreneur.</div>
     </div>
-    <div class="card form">
-      <div class="cap">Objectif mensuel — Théo</div>
-      <input type="number" id="obj-theo" min="0" step="1" placeholder="3000">
-      <button type="button" class="btn" onclick="saveObjectif('theo')">Enregistrer</button>
+
+    <div class="card" id="clients-card">
+      <div class="cap">Tes infopreneurs</div>
+      <div id="clients-list" style="margin-top:8px"></div>
+      <div class="note" id="no-clients-note" style="margin-top:8px;display:none">Aucun infopreneur pour l'instant. Ajoute-en un ci-dessus.</div>
     </div>
-    <div class="ok" id="saved">Objectif mis à jour.</div>
-    <div class="note">Sur le filtre « Tous », l'objectif affiché est la somme des deux objectifs.</div>
+
+    <div class="ok" id="saved">Mis à jour.</div>
+    <div class="note">Sur le filtre « Tous », l'objectif affiché est la somme des objectifs de chaque infopreneur.</div>
   </section>
 </main>
 
@@ -223,25 +287,49 @@
   <button type="button" class="on" id="tab-suivi" onclick="setTab('suivi')"><span class="dot"></span>Suivi</button>
   <button type="button" id="tab-ajouter" onclick="setTab('ajouter')"><span class="dot"></span>Ajouter</button>
   <button type="button" id="tab-historique" onclick="setTab('historique')"><span class="dot"></span>Historique</button>
+  <button type="button" id="tab-stats" onclick="setTab('stats')"><span class="dot"></span>Stats</button>
   <button type="button" id="tab-reglages" onclick="setTab('reglages')"><span class="dot"></span>Réglages</button>
 </nav>
 
 <script>
-const KEYS = {calls:'closing-calls', primes:'closing-primes', dangelo:'closing-objectif-dangelo', theo:'closing-objectif-theo'};
-const TITLES = {suivi:'Suivi', ajouter:'Nouvelle entrée', historique:'Historique', reglages:'Réglages'};
-const TABS = ['suivi','ajouter','historique','reglages'];
+const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2'};
+const TITLES = {suivi:'Suivi', ajouter:'Nouvelle entrée', historique:'Historique', stats:'Statistiques', reglages:'Réglages'};
+const TABS = ['suivi','ajouter','historique','stats','reglages'];
 
+let clients = [];
 let calls = [], primes = [];
-let objectifs = {dangelo:3000, theo:3000};
+let objectifs = {};
 let tab = 'suivi', filter = 'tous', mode = 'call';
-let callClient = null, callResult = null, primeClient = null;
+let callClientId = null, callResult = null, primeClientId = null;
 
 const $ = id => document.getElementById(id);
 const today = () => new Date().toISOString().split('T')[0];
 const euros = n => Math.round(n).toLocaleString('fr-FR').replace(/\u202f/g,' ') + ' €';
 const fmtDate = iso => { const p = String(iso).split('-'); return p[2]+'/'+p[1]+'/'+p[0].slice(2); };
-const clientLabel = c => c === 'dangelo' ? 'Dangelo' : 'Théo';
 const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+const clientName = id => { const c = clients.find(x => x.id === id); return c ? c.name : 'Inconnu'; };
+const newId = () => 'c' + Date.now() + Math.floor(Math.random()*1000);
+
+const OBJECTION_LABELS = {
+  'prix': 'Prix / budget',
+  'reflexion': 'Besoin de réfléchir',
+  'proches': 'Avis des proches',
+  'doute-resultat': 'Doute sur le résultat',
+  'timing': 'Timing',
+  'confiance': 'Manque de confiance',
+  'autre': null
+};
+
+function onObjectionChange(){
+  const val = $('objection').value;
+  $('objection-autre-field').classList.toggle('hide', val !== 'autre');
+}
+
+function objectionLabel(c){
+  if (!c.objection) return '';
+  if (c.objection === 'autre') return c.objectionDetail ? esc(c.objectionDetail) : 'Autre objection';
+  return OBJECTION_LABELS[c.objection] || '';
+}
 
 function setTab(t){
   tab = t;
@@ -250,15 +338,25 @@ function setTab(t){
     $('view-'+k).classList.toggle('hide', k !== t);
   });
   $('screen-title').textContent = TITLES[t];
-  $('filter').classList.toggle('hide', t !== 'suivi' && t !== 'historique');
+  $('filter').classList.toggle('hide', t !== 'suivi' && t !== 'historique' && t !== 'stats');
+  if (t === 'ajouter') renderClientButtons();
+  if (t === 'reglages') renderClientsSettings();
+  if (t === 'stats') renderCharts();
 }
 
 function setFilter(f){
   filter = f;
-  const btns = $('filter').children;
-  ['tous','dangelo','theo'].forEach((k,i) => btns[i].classList.toggle('on', k === f));
-  $('scope').textContent = f === 'tous' ? 'Dangelo + Théo' : clientLabel(f);
+  renderFilterChips();
+  $('scope').textContent = f === 'tous' ? 'Tous les infopreneurs' : clientName(f);
   render();
+  if (tab === 'stats') renderCharts();
+}
+
+function renderFilterChips(){
+  const el = $('filter');
+  let html = `<button type="button" class="${filter==='tous'?'on':''}" onclick="setFilter('tous')">Tous</button>`;
+  html += clients.map(c => `<button type="button" class="${filter===c.id?'on':''}" onclick="setFilter('${c.id}')">${esc(c.name)}</button>`).join('');
+  el.innerHTML = html;
 }
 
 function setMode(m){
@@ -271,16 +369,28 @@ function setMode(m){
   $('prime-note').style.display = m === 'prime' ? 'block' : 'none';
 }
 
-function setCallClient(c){
-  callClient = c;
-  $('c-dangelo').className = c === 'dangelo' ? 'on' : '';
-  $('c-theo').className = c === 'theo' ? 'on' : '';
+function renderClientButtons(){
+  const hasClients = clients.length > 0;
+  $('no-client-msg').style.display = hasClients ? 'none' : 'block';
+  $('ajouter-content').style.display = hasClients ? 'block' : 'none';
+  if (!hasClients) return;
+
+  $('call-client-row').innerHTML = clients.map(c =>
+    `<button type="button" data-cid="${c.id}" onclick="setCallClient('${c.id}')">${esc(c.name)}</button>`
+  ).join('');
+  $('prime-client-row').innerHTML = clients.map(c =>
+    `<button type="button" data-cid="${c.id}" onclick="setPrimeClient('${c.id}')">${esc(c.name)}</button>`
+  ).join('');
 }
 
-function setPrimeClient(c){
-  primeClient = c;
-  $('p-dangelo').className = c === 'dangelo' ? 'on' : '';
-  $('p-theo').className = c === 'theo' ? 'on' : '';
+function setCallClient(id){
+  callClientId = id;
+  [...$('call-client-row').children].forEach(b => b.classList.toggle('on', b.dataset.cid === id));
+}
+
+function setPrimeClient(id){
+  primeClientId = id;
+  [...$('prime-client-row').children].forEach(b => b.classList.toggle('on', b.dataset.cid === id));
 }
 
 function setResult(r){
@@ -290,7 +400,7 @@ function setResult(r){
   $('commission-field').classList.toggle('hide', r !== 'closed');
 }
 
-function scoped(arr){ return filter === 'tous' ? arr : arr.filter(x => x.client === filter); }
+function scoped(arr){ return filter === 'tous' ? arr : arr.filter(x => x.clientId === filter); }
 
 function render(){
   const cs = scoped(calls), ps = scoped(primes);
@@ -300,7 +410,9 @@ function render(){
   const comm = closedCalls.reduce((a,c) => a + (c.commission || 0), 0);
   const prim = ps.reduce((a,p) => a + (p.montant || 0), 0);
   const total = comm + prim;
-  const objectif = filter === 'tous' ? objectifs.dangelo + objectifs.theo : objectifs[filter];
+  const objectif = filter === 'tous'
+    ? clients.reduce((a,c) => a + (objectifs[c.id] || 0), 0)
+    : (objectifs[filter] || 0);
   const pct = objectif > 0 ? Math.min(100, Math.round(total / objectif * 100)) : 0;
   const remaining = Math.max(objectif - total, 0);
 
@@ -316,7 +428,9 @@ function render(){
   $('bar').style.width = pct + '%';
 
   let detail;
-  if (remaining === 0) {
+  if (objectif === 0) {
+    detail = 'Définis un objectif pour cet infopreneur dans Réglages.';
+  } else if (remaining === 0) {
     detail = 'Objectif atteint.';
   } else if (closed > 0 && comm > 0) {
     const avg = comm / closed;
@@ -332,14 +446,16 @@ function render(){
   $('detail').textContent = detail;
 
   const items = cs.map(c => ({
-    date: c.date, name: esc(c.prospect), client: clientLabel(c.client),
+    date: c.date, name: esc(c.prospect), client: clientName(c.clientId),
     amount: c.result === 'closed' && c.commission ? '+ ' + euros(c.commission) : '',
     status: c.result === 'closed' ? 'Closé' : 'Perdu',
     cls: c.result === 'closed' ? 'closed' : 'perdu',
+    objection: objectionLabel(c),
     del: "deleteCall('" + c.id + "')"
   })).concat(ps.map(p => ({
-    date: p.date, name: p.label ? esc(p.label) : 'Prime', client: clientLabel(p.client),
+    date: p.date, name: p.label ? esc(p.label) : 'Prime', client: clientName(p.clientId),
     amount: '+ ' + euros(p.montant), status: 'Prime', cls: 'prime',
+    objection: '',
     del: "deletePrime('" + p.id + "')"
   }))).sort((a,b) => String(b.date).localeCompare(String(a.date)));
 
@@ -348,7 +464,7 @@ function render(){
     : items.map(i => `
       <div class="item">
         <div class="l">
-          <div class="name-row"><span class="name">${i.name}</span><span class="tag">${i.client}</span></div>
+          <div class="name-row"><span class="name">${i.name}</span><span class="tag">${esc(i.client)}</span>${i.objection ? '<span class="tag obj-tag">'+i.objection+'</span>' : ''}</div>
           <div class="meta"><span>${fmtDate(i.date)}</span><span class="amt">${i.amount}</span></div>
         </div>
         <div class="r">
@@ -361,31 +477,35 @@ function render(){
 function addCall(){
   const prospect = $('prospect').value.trim();
   const amount = parseFloat($('commission').value);
-  if (!prospect || !callClient || !callResult || (callResult === 'closed' && (!amount || amount <= 0))) {
+  if (!prospect || !callClientId || !callResult || (callResult === 'closed' && (!amount || amount <= 0))) {
     $('call-err').style.display = 'block';
     return;
   }
   $('call-err').style.display = 'none';
+  const objectionVal = $('objection').value;
   calls.push({
-    id: String(Date.now()), client: callClient, prospect: prospect,
+    id: String(Date.now()), clientId: callClientId, prospect: prospect,
     date: $('call-date').value || today(), result: callResult,
-    commission: callResult === 'closed' ? amount : 0
+    commission: callResult === 'closed' ? amount : 0,
+    objection: objectionVal,
+    objectionDetail: objectionVal === 'autre' ? $('objection-autre').value.trim() : ''
   });
   localStorage.setItem(KEYS.calls, JSON.stringify(calls));
   $('prospect').value = ''; $('commission').value = ''; $('call-date').value = today();
+  $('objection').value = ''; $('objection-autre').value = ''; $('objection-autre-field').classList.add('hide');
   setCallClient(null); setResult(null);
   render(); setTab('suivi');
 }
 
 function addPrime(){
   const amount = parseFloat($('prime-amount').value);
-  if (!primeClient || !amount || amount <= 0) {
+  if (!primeClientId || !amount || amount <= 0) {
     $('prime-err').style.display = 'block';
     return;
   }
   $('prime-err').style.display = 'none';
   primes.push({
-    id: String(Date.now()), client: primeClient, label: $('prime-label').value.trim(),
+    id: String(Date.now()), clientId: primeClientId, label: $('prime-label').value.trim(),
     date: $('prime-date').value || today(), montant: amount
   });
   localStorage.setItem(KEYS.primes, JSON.stringify(primes));
@@ -406,28 +526,214 @@ function deletePrime(id){
   render();
 }
 
-function saveObjectif(which){
-  const input = $('obj-' + which);
+function addClient(){
+  const input = $('new-client-name');
+  const name = input.value.trim();
+  if (!name) {
+    $('client-err').style.display = 'block';
+    return;
+  }
+  $('client-err').style.display = 'none';
+  clients.push({ id: newId(), name: name });
+  localStorage.setItem(KEYS.clients, JSON.stringify(clients));
+  input.value = '';
+  renderClientsSettings();
+  renderFilterChips();
+  render();
+}
+
+function deleteClient(id){
+  clients = clients.filter(c => c.id !== id);
+  delete objectifs[id];
+  localStorage.setItem(KEYS.clients, JSON.stringify(clients));
+  localStorage.setItem(KEYS.objectifs, JSON.stringify(objectifs));
+  if (filter === id) { filter = 'tous'; $('scope').textContent = 'Tous les infopreneurs'; }
+  renderClientsSettings();
+  renderFilterChips();
+  render();
+}
+
+function saveClientObjectif(id){
+  const input = $('obj-input-' + id);
   const val = parseFloat(input.value);
   if (!val || val <= 0) { input.focus(); return; }
-  objectifs[which] = val;
-  localStorage.setItem(KEYS[which], JSON.stringify(val));
+  objectifs[id] = val;
+  localStorage.setItem(KEYS.objectifs, JSON.stringify(objectifs));
   render();
   const msg = $('saved');
   msg.style.display = 'block';
   setTimeout(() => { msg.style.display = 'none'; }, 2200);
 }
 
+function renderClientsSettings(){
+  const listEl = $('clients-list');
+  $('no-clients-note').style.display = clients.length === 0 ? 'block' : 'none';
+  listEl.innerHTML = clients.map(c => `
+    <div class="client-row-item" style="flex-direction:column;align-items:stretch">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="cname">${esc(c.name)}</div>
+          <div class="cobj">Objectif : ${euros(objectifs[c.id] || 0)}</div>
+        </div>
+        <button class="del" aria-label="Supprimer" onclick="deleteClient('${c.id}')">✕</button>
+      </div>
+      <div class="inline-edit">
+        <input type="number" id="obj-input-${c.id}" min="0" step="1" placeholder="3000" value="${objectifs[c.id] || ''}">
+        <button type="button" onclick="saveClientObjectif('${c.id}')">Enregistrer</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+let chartRevenu = null, chartObjections = null, chartTaux = null;
+
+function monthKey(iso){
+  const p = String(iso).split('-');
+  return p[0] + '-' + p[1];
+}
+
+function monthLabel(key){
+  const [y,m] = key.split('-');
+  const noms = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+  return noms[parseInt(m,10)-1] + ' ' + y.slice(2);
+}
+
+function renderCharts(){
+  const cs = scoped(calls), ps = scoped(primes);
+
+  const monthTotals = {};
+  cs.filter(c => c.result === 'closed').forEach(c => {
+    const k = monthKey(c.date);
+    monthTotals[k] = (monthTotals[k] || 0) + (c.commission || 0);
+  });
+  ps.forEach(p => {
+    const k = monthKey(p.date);
+    monthTotals[k] = (monthTotals[k] || 0) + (p.montant || 0);
+  });
+  const monthKeys = Object.keys(monthTotals).sort();
+
+  if (chartRevenu) chartRevenu.destroy();
+  if (monthKeys.length === 0) {
+    $('chart-revenu-empty').classList.remove('hide');
+    $('chart-revenu').classList.add('hide');
+  } else {
+    $('chart-revenu-empty').classList.add('hide');
+    $('chart-revenu').classList.remove('hide');
+    chartRevenu = new Chart($('chart-revenu').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: monthKeys.map(monthLabel),
+        datasets: [{
+          data: monthKeys.map(k => monthTotals[k]),
+          backgroundColor: '#1c8a53',
+          borderRadius: 6,
+          maxBarThickness: 40
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => euros(ctx.raw) } } },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => euros(v), font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#efede8' } },
+          x: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  const objectionCounts = {};
+  cs.forEach(c => {
+    if (!c.objection) return;
+    const label = objectionLabel(c) || 'Autre';
+    objectionCounts[label] = (objectionCounts[label] || 0) + 1;
+  });
+  const objKeys = Object.keys(objectionCounts).sort((a,b) => objectionCounts[b] - objectionCounts[a]);
+
+  if (chartObjections) chartObjections.destroy();
+  if (objKeys.length === 0) {
+    $('chart-objections-empty').classList.remove('hide');
+    $('chart-objections').classList.add('hide');
+  } else {
+    $('chart-objections-empty').classList.add('hide');
+    $('chart-objections').classList.remove('hide');
+    chartObjections = new Chart($('chart-objections').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: objKeys,
+        datasets: [{
+          data: objKeys.map(k => objectionCounts[k]),
+          backgroundColor: '#a6650f',
+          borderRadius: 6,
+          maxBarThickness: 28
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw + (ctx.raw > 1 ? ' fois' : ' fois') } } },
+        scales: {
+          x: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#efede8' } },
+          y: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  const tauxData = clients.map(c => {
+    const clientCalls = calls.filter(x => x.clientId === c.id);
+    const closedN = clientCalls.filter(x => x.result === 'closed').length;
+    const rate = clientCalls.length ? Math.round(closedN / clientCalls.length * 100) : 0;
+    return { name: c.name, rate: rate, count: clientCalls.length };
+  }).filter(d => d.count > 0);
+
+  if (chartTaux) chartTaux.destroy();
+  if (tauxData.length === 0) {
+    $('chart-taux-empty').classList.remove('hide');
+    $('chart-taux').classList.add('hide');
+  } else {
+    $('chart-taux-empty').classList.add('hide');
+    $('chart-taux').classList.remove('hide');
+    chartTaux = new Chart($('chart-taux').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: tauxData.map(d => d.name),
+        datasets: [{
+          data: tauxData.map(d => d.rate),
+          backgroundColor: '#16181b',
+          borderRadius: 6,
+          maxBarThickness: 40
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw + '%' } } },
+        scales: {
+          y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%', font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#efede8' } },
+          x: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false } }
+        }
+      }
+    });
+  }
+}
+
+function exportPdf(){
+  const scopeLabel = filter === 'tous' ? 'Tous les infopreneurs' : clientName(filter);
+  const dateStr = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  $('print-meta').textContent = 'Closing Tracker — Export du ' + dateStr + ' — ' + scopeLabel;
+  renderCharts();
+  setTimeout(() => { window.print(); }, 250);
+}
+
 function init(){
   const read = (k, fb) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch(e) { return fb; } };
+  clients = read(KEYS.clients, []) || [];
   calls = read(KEYS.calls, []) || [];
   primes = read(KEYS.primes, []) || [];
-  objectifs.dangelo = read(KEYS.dangelo, 3000) || 3000;
-  objectifs.theo = read(KEYS.theo, 3000) || 3000;
-  $('obj-dangelo').value = objectifs.dangelo;
-  $('obj-theo').value = objectifs.theo;
+  objectifs = read(KEYS.objectifs, {}) || {};
   $('call-date').value = today();
   $('prime-date').value = today();
+  renderFilterChips();
+  renderClientsSettings();
   render();
 }
 
