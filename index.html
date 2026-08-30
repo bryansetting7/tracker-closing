@@ -77,6 +77,10 @@
   .row button.on{background:#16181b;border-color:#16181b;color:#fff}
   .row button.on-green{background:#e8f3ec;border-color:#1c8a53;color:#146b3f}
   .row button.on-red{background:#fbeceb;border-color:#b83a2e;color:#b83a2e}
+  .row button.on-gray{background:#f1efea;border-color:#8a8880;color:#5f5e58}
+  textarea{width:100%;padding:12px 13px;border:1px solid #e0ddd6;border-radius:11px;background:#fbfaf8;font-size:14px;color:#16181b;font-family:'Instrument Sans',sans-serif;resize:vertical;min-height:64px}
+  textarea::placeholder{color:#b3b0a8}
+  textarea:focus{outline:none;border-color:#16181b}
   .btn{width:100%;padding:14px 0;border:none;border-radius:12px;background:#16181b;color:#fff;font:600 14px 'Instrument Sans';cursor:pointer}
   .btn.green{background:#1c8a53}
   .btn.ghost{background:#fbfaf8;color:#16181b;border:1px solid #e0ddd6}
@@ -98,6 +102,10 @@
   .status.closed{background:#e8f3ec;color:#146b3f}
   .status.perdu{background:#fbeceb;color:#b83a2e}
   .status.prime{background:#f1efea;color:#6c6a64}
+  .status.noshow{background:#fef6e7;color:#a6650f}
+  .delta{font-weight:600}
+  .delta.up{color:#1c8a53}
+  .delta.down{color:#b83a2e}
   .del{border:none;background:none;color:#b3b0a8;font-size:15px;cursor:pointer;padding:4px 2px}
   .empty{text-align:center;padding:34px 0;font-size:13px;color:#a8a59e}
   .tabbar{display:flex;border-top:1px solid #e6e3dd;background:#fbfaf8;padding:8px 8px calc(8px + env(safe-area-inset-bottom));position:sticky;bottom:0}
@@ -154,11 +162,13 @@
       <div class="card">
         <div class="cap">Taux de closing</div>
         <div class="big" id="rate">0%</div>
+        <div class="sub" id="rate-sub">0 closés / 0 tenus</div>
       </div>
       <div class="card">
-        <div class="cap">Calls</div>
-        <div class="big"><span id="closed">0</span> <span class="of">/ <span id="count">0</span></span></div>
-        <div class="sub">closés sur passés</div>
+        <div class="cap">Taux de présence</div>
+        <div class="big" id="showrate">0%</div>
+        <div class="sub" id="showrate-sub">0 tenus / 0 programmés</div>
+        <div class="sub hide" id="view-noshow-link" style="margin-top:8px"><a href="javascript:void(0)" onclick="viewNoShows()" style="color:#16181b;font-weight:600;text-decoration:underline">Voir les absents →</a></div>
       </div>
     </div>
     <div class="card">
@@ -169,6 +179,15 @@
       <div class="big" style="font-size:26px;letter-spacing:-1.2px"><span id="total2">0 €</span> <span class="of">/ <span id="objectif">0 €</span></span></div>
       <div class="bar"><div id="bar"></div></div>
       <div class="detail" id="detail">Ajoute des calls closés avec leur commission pour suivre ta progression.</div>
+    </div>
+    <div class="card">
+      <div class="top" style="display:flex;align-items:baseline;justify-content:space-between">
+        <div class="cap">Objectif hebdo</div>
+        <div class="scope" id="pct-week" style="max-width:none">0%</div>
+      </div>
+      <div class="big" style="font-size:26px;letter-spacing:-1.2px"><span id="total-week">0 €</span> <span class="of">/ <span id="objectif-week">0 €</span></span></div>
+      <div class="bar"><div id="bar-week"></div></div>
+      <div class="detail" id="detail-week">Semaine en cours (lundi à dimanche).</div>
     </div>
   </section>
 
@@ -183,6 +202,13 @@
       <div class="seg" id="mode">
         <button type="button" class="on" onclick="setMode('call')">Un call</button>
         <button type="button" onclick="setMode('prime')">Une prime</button>
+      </div>
+
+      <div class="card" id="quick-add-card" style="margin-top:12px">
+        <div class="cap">Pré-remplir depuis un message</div>
+        <div class="note" style="margin-top:6px">Colle le message de rappel (WhatsApp, agenda…) : le prénom et la date seront repérés automatiquement.</div>
+        <textarea id="quick-paste" placeholder="Colle ici le message ou la description du rdv…" style="margin-top:10px"></textarea>
+        <button type="button" class="btn ghost" style="margin-top:10px" onclick="quickFillFromPaste()">Pré-remplir</button>
       </div>
 
       <div class="card form" id="form-call" style="margin-top:12px">
@@ -203,6 +229,7 @@
           <div class="row">
             <button type="button" id="r-closed" onclick="setResult('closed')">Closé</button>
             <button type="button" id="r-perdu" onclick="setResult('perdu')">Perdu</button>
+            <button type="button" id="r-noshow" onclick="setResult('noshow')">Absent</button>
           </div>
         </div>
         <div class="field hide" id="commission-field">
@@ -257,6 +284,12 @@
 
   <!-- HISTORIQUE -->
   <section id="view-historique" class="hide">
+    <div class="seg" id="status-filter" style="margin-bottom:12px">
+      <button type="button" class="on" data-sf="tous" onclick="setStatusFilter('tous')">Tous</button>
+      <button type="button" data-sf="closed" onclick="setStatusFilter('closed')">Closés</button>
+      <button type="button" data-sf="perdu" onclick="setStatusFilter('perdu')">Perdus</button>
+      <button type="button" data-sf="noshow" onclick="setStatusFilter('noshow')">Absents</button>
+    </div>
     <div class="list" id="list"></div>
   </section>
 
@@ -265,9 +298,30 @@
     <div id="print-meta"></div>
     <button type="button" class="btn ghost" id="export-pdf-btn" onclick="exportPdf()">Exporter en PDF</button>
     <div class="card">
+      <div class="cap">Ce mois vs mois dernier</div>
+      <div class="split" style="margin-top:6px;padding-top:0;border-top:none">
+        <div class="col">
+          <span class="k">CA ce mois</span>
+          <span class="v" id="cmp-ca-cur">0 €</span>
+          <span class="sub" id="cmp-ca-delta">—</span>
+        </div>
+        <div class="sep"></div>
+        <div class="col">
+          <span class="k">Taux de closing</span>
+          <span class="v" id="cmp-rate-cur" style="color:#16181b">0%</span>
+          <span class="sub" id="cmp-rate-delta">—</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
       <div class="cap">Revenu par mois</div>
       <div class="chart-wrap"><canvas id="chart-revenu"></canvas></div>
       <div class="chart-empty hide" id="chart-revenu-empty">Pas encore assez de données pour un graphique.</div>
+    </div>
+    <div class="card">
+      <div class="cap">Ventes par offre</div>
+      <div class="chart-wrap"><canvas id="chart-offres"></canvas></div>
+      <div class="chart-empty hide" id="chart-offres-empty">Ajoute des offres dans Réglages et close des calls pour voir ce graphique.</div>
     </div>
     <div class="card">
       <div class="cap">Objections les plus fréquentes</div>
@@ -298,6 +352,16 @@
       <div class="note" id="no-clients-note" style="margin-top:8px;display:none">Aucun infopreneur pour l'instant. Ajoute-en un ci-dessus.</div>
     </div>
 
+    <div class="card">
+      <div class="cap">Sauvegarde</div>
+      <div class="note" style="margin-top:8px">Tes données sont stockées uniquement sur cet appareil/navigateur. Exporte-les régulièrement pour ne rien perdre si tu changes de téléphone ou vides ton cache.</div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button type="button" class="btn ghost" style="flex:1" onclick="exportData()">Exporter (JSON)</button>
+        <button type="button" class="btn ghost" style="flex:1" onclick="triggerImport()">Importer</button>
+      </div>
+      <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(this)">
+    </div>
+
     <div class="ok" id="saved">Mis à jour.</div>
     <div class="note">Sur le filtre « Tous », l'objectif affiché est la somme des objectifs de chaque infopreneur.</div>
   </section>
@@ -312,7 +376,7 @@
 </nav>
 
 <script>
-const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1'};
+const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1'};
 const TITLES = {suivi:'Suivi', ajouter:'Nouvelle entrée', historique:'Historique', stats:'Statistiques', reglages:'Réglages'};
 const TABS = ['suivi','ajouter','historique','stats','reglages'];
 
@@ -320,7 +384,8 @@ let clients = [];
 let calls = [], primes = [];
 let objectifs = {};
 let offers = {};
-let tab = 'suivi', filter = 'tous', mode = 'call';
+let weeklyObjectifs = {};
+let tab = 'suivi', filter = 'tous', mode = 'call', statusFilter = 'tous';
 let callClientId = null, callResult = null, primeClientId = null;
 let selectedOfferId = null, selectedOfferName = null;
 
@@ -331,6 +396,21 @@ const fmtDate = iso => { const p = String(iso).split('-'); return p[2]+'/'+p[1]+
 const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
 const clientName = id => { const c = clients.find(x => x.id === id); return c ? c.name : 'Inconnu'; };
 const newId = () => 'c' + Date.now() + Math.floor(Math.random()*1000);
+
+function startOfWeek(d){
+  const dt = new Date(d);
+  dt.setHours(0,0,0,0);
+  const day = dt.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  dt.setDate(dt.getDate() + diff);
+  return dt;
+}
+function inCurrentWeek(iso){
+  const d = new Date(iso + 'T00:00:00');
+  const start = startOfWeek(new Date());
+  const end = new Date(start); end.setDate(end.getDate() + 6); end.setHours(23,59,59,999);
+  return d >= start && d <= end;
+}
 
 const OBJECTION_LABELS = {
   'prix': 'Prix / budget',
@@ -387,6 +467,7 @@ function setMode(m){
   btns[0].classList.toggle('on', m === 'call');
   btns[1].classList.toggle('on', m === 'prime');
   $('form-call').classList.toggle('hide', m !== 'call');
+  $('quick-add-card').classList.toggle('hide', m !== 'call');
   $('form-prime').classList.toggle('hide', m !== 'prime');
   $('prime-note').style.display = m === 'prime' ? 'block' : 'none';
 }
@@ -420,6 +501,7 @@ function setResult(r){
   callResult = r;
   $('r-closed').className = r === 'closed' ? 'on-green' : '';
   $('r-perdu').className = r === 'perdu' ? 'on-red' : '';
+  $('r-noshow').className = r === 'noshow' ? 'on-gray' : '';
   $('commission-field').classList.toggle('hide', r !== 'closed');
   updateOfferField();
 }
@@ -458,11 +540,25 @@ function selectOffer(clientId, offerId){
 
 function scoped(arr){ return filter === 'tous' ? arr : arr.filter(x => x.clientId === filter); }
 
+function setStatusFilter(s){
+  statusFilter = s;
+  [...$('status-filter').children].forEach(b => b.classList.toggle('on', b.dataset.sf === s));
+  render();
+}
+
+function viewNoShows(){
+  setStatusFilter('noshow');
+  setTab('historique');
+}
+
 function render(){
   const cs = scoped(calls), ps = scoped(primes);
   const closedCalls = cs.filter(c => c.result === 'closed');
-  const count = cs.length, closed = closedCalls.length;
-  const rate = count ? Math.round(closed / count * 100) : 0;
+  const heldCalls = cs.filter(c => c.result !== 'noshow');
+  const noshowCalls = cs.filter(c => c.result === 'noshow');
+  const count = cs.length, closed = closedCalls.length, held = heldCalls.length, noshow = noshowCalls.length;
+  const rate = held ? Math.round(closed / held * 100) : 0;
+  const showRate = count ? Math.round(held / count * 100) : 0;
   const comm = closedCalls.reduce((a,c) => a + (c.commission || 0), 0);
   const prim = ps.reduce((a,p) => a + (p.montant || 0), 0);
   const total = comm + prim;
@@ -472,16 +568,36 @@ function render(){
   const pct = objectif > 0 ? Math.min(100, Math.round(total / objectif * 100)) : 0;
   const remaining = Math.max(objectif - total, 0);
 
+  const csWeek = cs.filter(c => inCurrentWeek(c.date) && c.result === 'closed');
+  const psWeek = ps.filter(p => inCurrentWeek(p.date));
+  const totalWeek = csWeek.reduce((a,c) => a + (c.commission || 0), 0) + psWeek.reduce((a,p) => a + (p.montant || 0), 0);
+  const objectifWeek = filter === 'tous'
+    ? clients.reduce((a,c) => a + (weeklyObjectifs[c.id] || 0), 0)
+    : (weeklyObjectifs[filter] || 0);
+  const pctWeek = objectifWeek > 0 ? Math.min(100, Math.round(totalWeek / objectifWeek * 100)) : 0;
+
   $('total').textContent = euros(total);
   $('total2').textContent = euros(total);
   $('comm').textContent = euros(comm);
   $('prim').textContent = euros(prim);
   $('rate').textContent = rate + '%';
-  $('closed').textContent = closed;
-  $('count').textContent = count;
+  $('rate-sub').textContent = closed + (closed > 1 ? ' closés / ' : ' closé / ') + held + (held > 1 ? ' tenus' : ' tenu');
+  $('showrate').textContent = showRate + '%';
+  $('showrate-sub').textContent = held + (held > 1 ? ' tenus / ' : ' tenu / ') + count + (count > 1 ? ' programmés' : ' programmé') + (noshow ? ' · ' + noshow + (noshow > 1 ? ' absents' : ' absent') : '');
+  $('view-noshow-link').classList.toggle('hide', noshow === 0);
   $('objectif').textContent = euros(objectif);
   $('pct').textContent = pct + '%';
   $('bar').style.width = pct + '%';
+
+  $('total-week').textContent = euros(totalWeek);
+  $('objectif-week').textContent = euros(objectifWeek);
+  $('pct-week').textContent = pctWeek + '%';
+  $('bar-week').style.width = pctWeek + '%';
+  $('detail-week').textContent = objectifWeek === 0
+    ? 'Définis un objectif hebdo pour cet infopreneur dans Réglages.'
+    : (totalWeek >= objectifWeek
+      ? 'Objectif hebdo atteint.'
+      : 'Il te reste ' + euros(objectifWeek - totalWeek) + ' cette semaine (lundi à dimanche).');
 
   let detail;
   if (objectif === 0) {
@@ -501,23 +617,33 @@ function render(){
   }
   $('detail').textContent = detail;
 
-  const items = cs.map(c => ({
+  const csForList = statusFilter === 'tous' ? cs : cs.filter(c => c.result === statusFilter);
+  const psForList = statusFilter === 'tous' ? ps : [];
+
+  const items = csForList.map(c => ({
     date: c.date, name: esc(c.prospect), client: clientName(c.clientId),
     amount: c.result === 'closed' && c.commission ? '+ ' + euros(c.commission) : '',
-    status: c.result === 'closed' ? 'Closé' : 'Perdu',
-    cls: c.result === 'closed' ? 'closed' : 'perdu',
+    status: c.result === 'closed' ? 'Closé' : (c.result === 'noshow' ? 'Absent' : 'Perdu'),
+    cls: c.result === 'closed' ? 'closed' : (c.result === 'noshow' ? 'noshow' : 'perdu'),
     objection: objectionLabel(c),
     offerName: c.offerName || '',
     del: "deleteCall('" + c.id + "')"
-  })).concat(ps.map(p => ({
+  })).concat(psForList.map(p => ({
     date: p.date, name: p.label ? esc(p.label) : 'Prime', client: clientName(p.clientId),
     amount: '+ ' + euros(p.montant), status: 'Prime', cls: 'prime',
     objection: '', offerName: '',
     del: "deletePrime('" + p.id + "')"
   }))).sort((a,b) => String(b.date).localeCompare(String(a.date)));
 
+  const emptyMsg = {
+    tous: 'Aucun élément enregistré pour l\'instant.',
+    closed: 'Aucun call closé pour l\'instant.',
+    perdu: 'Aucun call perdu pour l\'instant.',
+    noshow: 'Aucun no-show pour l\'instant.'
+  }[statusFilter];
+
   $('list').innerHTML = items.length === 0
-    ? '<div class="empty">Aucun élément enregistré pour l\'instant.</div>'
+    ? '<div class="empty">' + emptyMsg + '</div>'
     : items.map(i => `
       <div class="item">
         <div class="l">
@@ -624,6 +750,18 @@ function saveClientObjectif(id){
   setTimeout(() => { msg.style.display = 'none'; }, 2200);
 }
 
+function saveClientWeeklyObjectif(id){
+  const input = $('obj-week-input-' + id);
+  const val = parseFloat(input.value);
+  if (!val || val <= 0) { input.focus(); return; }
+  weeklyObjectifs[id] = val;
+  localStorage.setItem(KEYS.weeklyObjectifs, JSON.stringify(weeklyObjectifs));
+  render();
+  const msg = $('saved');
+  msg.style.display = 'block';
+  setTimeout(() => { msg.style.display = 'none'; }, 2200);
+}
+
 function renderOffersListHtml(clientId){
   const list = offers[clientId] || [];
   if (list.length === 0) return '<div class="note">Aucune offre configurée pour l\'instant.</div>';
@@ -673,13 +811,18 @@ function renderClientsSettings(){
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
           <div class="cname">${esc(c.name)}</div>
-          <div class="cobj">Objectif : ${euros(objectifs[c.id] || 0)}</div>
+          <div class="cobj">Objectif mensuel : ${euros(objectifs[c.id] || 0)}</div>
+          <div class="cobj">Objectif hebdo : ${euros(weeklyObjectifs[c.id] || 0)}</div>
         </div>
         <button class="del" aria-label="Supprimer" onclick="deleteClient('${c.id}')">✕</button>
       </div>
       <div class="inline-edit">
-        <input type="number" id="obj-input-${c.id}" min="0" step="1" placeholder="3000" value="${objectifs[c.id] || ''}">
+        <input type="number" id="obj-input-${c.id}" min="0" step="1" placeholder="3000 (mensuel)" value="${objectifs[c.id] || ''}">
         <button type="button" onclick="saveClientObjectif('${c.id}')">Enregistrer</button>
+      </div>
+      <div class="inline-edit">
+        <input type="number" id="obj-week-input-${c.id}" min="0" step="1" placeholder="750 (hebdo)" value="${weeklyObjectifs[c.id] || ''}">
+        <button type="button" onclick="saveClientWeeklyObjectif('${c.id}')">Enregistrer</button>
       </div>
 
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid #f1efea">
@@ -698,7 +841,7 @@ function renderClientsSettings(){
   `).join('');
 }
 
-let chartRevenu = null, chartObjections = null, chartTaux = null;
+let chartRevenu = null, chartObjections = null, chartTaux = null, chartOffres = null;
 
 function monthKey(iso){
   const p = String(iso).split('-');
@@ -712,6 +855,7 @@ function monthLabel(key){
 }
 
 function renderCharts(){
+  renderComparison();
   const cs = scoped(calls), ps = scoped(primes);
 
   const monthTotals = {};
@@ -749,6 +893,43 @@ function renderCharts(){
         scales: {
           y: { beginAtZero: true, ticks: { callback: v => euros(v), font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#efede8' } },
           x: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  const offerCounts = {};
+  cs.filter(c => c.result === 'closed').forEach(c => {
+    const label = c.offerName || 'Montant libre';
+    offerCounts[label] = (offerCounts[label] || 0) + 1;
+  });
+  const offerKeys = Object.keys(offerCounts).sort((a,b) => offerCounts[b] - offerCounts[a]);
+
+  if (chartOffres) chartOffres.destroy();
+  if (offerKeys.length === 0) {
+    $('chart-offres-empty').classList.remove('hide');
+    $('chart-offres').classList.add('hide');
+  } else {
+    $('chart-offres-empty').classList.add('hide');
+    $('chart-offres').classList.remove('hide');
+    chartOffres = new Chart($('chart-offres').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: offerKeys,
+        datasets: [{
+          data: offerKeys.map(k => offerCounts[k]),
+          backgroundColor: '#5b6ee1',
+          borderRadius: 6,
+          maxBarThickness: 32
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw + (ctx.raw > 1 ? ' ventes' : ' vente') } } },
+        scales: {
+          x: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#efede8' } },
+          y: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false } }
         }
       }
     });
@@ -793,7 +974,7 @@ function renderCharts(){
   }
 
   const tauxData = clients.map(c => {
-    const clientCalls = calls.filter(x => x.clientId === c.id);
+    const clientCalls = calls.filter(x => x.clientId === c.id && x.result !== 'noshow');
     const closedN = clientCalls.filter(x => x.result === 'closed').length;
     const rate = clientCalls.length ? Math.round(closedN / clientCalls.length * 100) : 0;
     return { name: c.name, rate: rate, count: clientCalls.length };
@@ -829,6 +1010,139 @@ function renderCharts(){
   }
 }
 
+function renderComparison(){
+  const cs = scoped(calls), ps = scoped(primes);
+  const now = new Date();
+  const curKey = monthKey(today());
+  const prevD = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevKey = prevD.getFullYear() + '-' + String(prevD.getMonth() + 1).padStart(2, '0');
+
+  function statsFor(key){
+    const csM = cs.filter(c => monthKey(c.date) === key);
+    const psM = ps.filter(p => monthKey(p.date) === key);
+    const heldM = csM.filter(c => c.result !== 'noshow');
+    const closedM = csM.filter(c => c.result === 'closed');
+    const ca = closedM.reduce((a,c) => a + (c.commission || 0), 0) + psM.reduce((a,p) => a + (p.montant || 0), 0);
+    const rate = heldM.length ? Math.round(closedM.length / heldM.length * 100) : 0;
+    return { ca: ca, rate: rate };
+  }
+
+  const cur = statsFor(curKey), prev = statsFor(prevKey);
+  $('cmp-ca-cur').textContent = euros(cur.ca);
+  $('cmp-rate-cur').textContent = cur.rate + '%';
+
+  const caDeltaEl = $('cmp-ca-delta');
+  if (prev.ca === 0) {
+    caDeltaEl.textContent = cur.ca > 0 ? 'vs 0 € le mois dernier' : 'Pas encore de données le mois dernier';
+    caDeltaEl.className = 'sub';
+  } else {
+    const d = Math.round((cur.ca - prev.ca) / prev.ca * 100);
+    caDeltaEl.textContent = (d >= 0 ? '+' : '') + d + '% vs mois dernier';
+    caDeltaEl.className = 'sub delta ' + (d >= 0 ? 'up' : 'down');
+  }
+
+  const rateDeltaEl = $('cmp-rate-delta');
+  const dr = cur.rate - prev.rate;
+  rateDeltaEl.textContent = (dr >= 0 ? '+' : '') + dr + ' pts vs mois dernier';
+  rateDeltaEl.className = 'sub delta ' + (dr >= 0 ? 'up' : 'down');
+}
+
+function exportData(){
+  const payload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    clients: clients, calls: calls, primes: primes,
+    objectifs: objectifs, offers: offers, weeklyObjectifs: weeklyObjectifs
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'closing-tracker-' + today() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function triggerImport(){
+  $('import-file').click();
+}
+
+function importData(input){
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let data;
+    try { data = JSON.parse(reader.result); } catch(e) {
+      alert('Fichier invalide : ce n\'est pas un JSON valide.');
+      input.value = '';
+      return;
+    }
+    if (!data || typeof data !== 'object' || !Array.isArray(data.clients) || !Array.isArray(data.calls)) {
+      alert('Fichier invalide : structure inattendue.');
+      input.value = '';
+      return;
+    }
+    if (!confirm('Importer ce fichier va remplacer toutes les données actuelles de l\'appli (infopreneurs, calls, primes, objectifs, offres). Continuer ?')) {
+      input.value = '';
+      return;
+    }
+    clients = data.clients || [];
+    calls = data.calls || [];
+    primes = data.primes || [];
+    objectifs = data.objectifs || {};
+    offers = data.offers || {};
+    weeklyObjectifs = data.weeklyObjectifs || {};
+    localStorage.setItem(KEYS.clients, JSON.stringify(clients));
+    localStorage.setItem(KEYS.calls, JSON.stringify(calls));
+    localStorage.setItem(KEYS.primes, JSON.stringify(primes));
+    localStorage.setItem(KEYS.objectifs, JSON.stringify(objectifs));
+    localStorage.setItem(KEYS.offers, JSON.stringify(offers));
+    localStorage.setItem(KEYS.weeklyObjectifs, JSON.stringify(weeklyObjectifs));
+    input.value = '';
+    renderFilterChips(); renderClientsSettings(); render();
+    if (tab === 'stats') renderCharts();
+    const msg = $('saved');
+    const prevText = msg.textContent;
+    msg.textContent = 'Données importées.';
+    msg.style.display = 'block';
+    setTimeout(() => { msg.style.display = 'none'; msg.textContent = prevText; }, 2500);
+  };
+  reader.readAsText(file);
+}
+
+function quickFillFromPaste(){
+  const text = $('quick-paste').value.trim();
+  if (!text) return;
+
+  const nameMatch = text.match(/(?:Hello|Salut|Bonjour|Coucou)[\s,]+([A-ZÀ-ÖØ-Ý][a-zà-öø-ÿ'’-]+)/);
+  if (nameMatch) $('prospect').value = nameMatch[1];
+
+  let dateVal = null;
+  if (/\baujourd'?hui\b/i.test(text)) {
+    dateVal = today();
+  } else if (/\bdemain\b/i.test(text)) {
+    const d = new Date(); d.setDate(d.getDate() + 1);
+    dateVal = d.toISOString().split('T')[0];
+  } else {
+    const dm = text.match(/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/);
+    if (dm) {
+      const day = dm[1].padStart(2, '0'), month = dm[2].padStart(2, '0');
+      let year = dm[3] ? dm[3] : String(new Date().getFullYear());
+      if (year.length === 2) year = '20' + year;
+      dateVal = year + '-' + month + '-' + day;
+    }
+  }
+  if (dateVal) $('call-date').value = dateVal;
+
+  $('quick-paste').value = '';
+  if (!nameMatch && !dateVal) {
+    alert('Prénom/date non repérés dans ce texte — remplis le formulaire manuellement.');
+  }
+}
+
 function exportPdf(){
   const scopeLabel = filter === 'tous' ? 'Tous les infopreneurs' : clientName(filter);
   const dateStr = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -844,6 +1158,7 @@ function init(){
   primes = read(KEYS.primes, []) || [];
   objectifs = read(KEYS.objectifs, {}) || {};
   offers = read(KEYS.offers, {}) || {};
+  weeklyObjectifs = read(KEYS.weeklyObjectifs, {}) || {};
   $('call-date').value = today();
   $('prime-date').value = today();
   renderFilterChips();
