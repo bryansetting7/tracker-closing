@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Closing Dangelo">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f1117">
+<title>Closing Dangelo</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0;
+    background: #0f1117;
+    min-height: 100vh;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #f4f6fb;
+    padding: max(20px, env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom)) 16px;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  .header { margin-bottom: 20px; }
+  .header .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 11px;
+    color: #e94560;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .header h1 {
+    font-size: 20px;
+    margin: 0;
+    font-weight: 800;
+  }
+  .scoreboard {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 14px;
+    padding: 22px 20px;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #262a45;
+  }
+  .scoreboard .rate {
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 40px;
+    font-weight: 800;
+    color: #e94560;
+    line-height: 1;
+  }
+  .scoreboard .rate-label {
+    font-size: 11px;
+    color: #8890a4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 6px;
+  }
+  .scoreboard .stats { text-align: right; font-family: 'SF Mono', 'Courier New', monospace; }
+  .scoreboard .stats div { font-size: 13px; color: #c9d1e0; margin-bottom: 4px; }
+  .scoreboard .stats b { color: #f4f6fb; font-weight: 700; }
+  .palier-btn {
+    width: 100%;
+    background: #1a1a2e;
+    border: 1px solid #262a45;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #f4f6fb;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .palier-pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: #0f1117;
+    color: #8890a4;
+  }
+  .palier-pill.on { background: #12351f; color: #2ecc71; }
+  .section-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #8890a4;
+    margin: 0 0 8px 0;
+  }
+  .proj-card {
+    background: #1a1a2e;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    border: 2px solid transparent;
+  }
+  .proj-card.active { border-color: #e94560; }
+  .proj-card.dim { opacity: 0.55; }
+  .proj-card .tag { font-size: 11px; color: #8890a4; margin-bottom: 4px; }
+  .proj-card .ventes { font-size: 20px; font-weight: 800; color: #f4f6fb; }
+  .proj-card .calls { font-size: 12px; color: #c9d1e0; margin-top: 4px; }
+  .card {
+    background: #1a1a2e;
+    border: 1px solid #262a45;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .card h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #8890a4;
+    margin: 0 0 12px 0;
+    font-weight: 700;
+  }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 12px; color: #8890a4; margin-bottom: 5px; }
+  input[type="text"], input[type="date"] {
+    width: 100%;
+    background: #0f1117;
+    border: 1px solid #2c3050;
+    border-radius: 8px;
+    color: #f4f6fb;
+    padding: 10px 12px;
+    font-size: 16px;
+  }
+  input:focus { outline: none; border-color: #e94560; }
+  .toggle-row { display: flex; gap: 8px; }
+  .toggle-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #2c3050;
+    background: #0f1117;
+    color: #8890a4;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .toggle-btn.active-closed { background: #12351f; border-color: #2ecc71; color: #2ecc71; }
+  .toggle-btn.active-perdu { background: #3a1620; border-color: #e94560; color: #e94560; }
+  .submit-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: #e94560;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .submit-btn:active { opacity: 0.85; }
+  .error-msg { font-size: 12px; color: #e94560; margin-top: 6px; display: none; }
+  .call-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #262a45;
+  }
+  .call-row:last-child { border-bottom: none; }
+  .call-info .name { font-size: 14px; font-weight: 700; color: #f4f6fb; }
+  .call-info .date { font-size: 11px; color: #8890a4; margin-top: 2px; }
+  .call-status {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .status-closed { background: #12351f; color: #2ecc71; }
+  .status-perdu { background: #3a1620; color: #e94560; }
+  .delete-btn {
+    background: none;
+    border: none;
+    color: #5a5f70;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    margin-left: 4px;
+  }
+  .empty-state { text-align: center; padding: 24px 0; color: #5a5f70; font-size: 13px; }
+  .row-with-delete { display: flex; align-items: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="eyebrow">Closing Dangelo</div>
+    <h1>Tracker de calls</h1>
+  </div>
+
+  <div class="scoreboard">
+    <div>
+      <div class="rate" id="rate">0%</div>
+      <div class="rate-label">Taux de closing</div>
+    </div>
+    <div class="stats">
+      <div><b id="stat-total">0</b> calls</div>
+      <div><b id="stat-closed">0</b> closés</div>
+    </div>
+  </div>
+
+  <button type="button" class="palier-btn" id="palier-toggle" onclick="togglePalier()">
+    <span id="palier-label">Palier d'équipe des 5k : pas encore atteint</span>
+    <span class="palier-pill" id="palier-pill">Activer</span>
+  </button>
+
+  <p class="section-label">Objectif 3000 € ce mois-ci</p>
+  <div class="proj-card active" id="card-15">
+    <div class="tag">Taux à 15% (avant palier)</div>
+    <div class="ventes" id="ventes-restantes-15">14 ventes</div>
+    <div class="calls" id="calls-restants-15">Ajoute des calls pour estimer</div>
+  </div>
+  <div class="proj-card dim" id="card-20" style="margin-bottom: 20px;">
+    <div class="tag">Taux à 20% (palier d'équipe atteint)</div>
+    <div class="ventes" id="ventes-restantes-20">11 ventes</div>
+    <div class="calls" id="calls-restants-20">Ajoute des calls pour estimer</div>
+  </div>
+
+  <div class="card">
+    <h2>Ajouter un call</h2>
+    <div class="field">
+      <label for="prospect">Nom du prospect</label>
+      <input type="text" id="prospect" placeholder="Ex: Marc Dubois">
+    </div>
+    <div class="field">
+      <label for="call-date">Date du call</label>
+      <input type="date" id="call-date">
+    </div>
+    <div class="field">
+      <label>Résultat</label>
+      <div class="toggle-row">
+        <button type="button" class="toggle-btn" id="btn-closed" onclick="setResult('closed')">Closé</button>
+        <button type="button" class="toggle-btn" id="btn-perdu" onclick="setResult('perdu')">Perdu</button>
+      </div>
+    </div>
+    <div class="error-msg" id="error-msg">Renseigne le nom et le résultat du call.</div>
+    <button class="submit-btn" onclick="addCall()">Ajouter le call</button>
+  </div>
+
+  <div class="card">
+    <h2>Historique</h2>
+    <div id="call-list"></div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'dangelo-calls';
+const PALIER_KEY = 'dangelo-palier-atteint';
+const VENTES_NEEDED_15 = 14;
+const VENTES_NEEDED_20 = 11;
+
+let calls = [];
+let selectedResult = null;
+let palierAtteint = false;
+
+function todayStr() {
+  const d = new Date();
+  return d.toISOString().split('T')[0];
+}
+
+function formatDate(iso) {
+  const parts = iso.split('-');
+  return parts[2] + '/' + parts[1] + '/' + parts[0].slice(2);
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function setResult(result) {
+  selectedResult = result;
+  document.getElementById('btn-closed').className = 'toggle-btn' + (result === 'closed' ? ' active-closed' : '');
+  document.getElementById('btn-perdu').className = 'toggle-btn' + (result === 'perdu' ? ' active-perdu' : '');
+}
+
+function updatePalierUI() {
+  const label = document.getElementById('palier-label');
+  const pill = document.getElementById('palier-pill');
+  const card15 = document.getElementById('card-15');
+  const card20 = document.getElementById('card-20');
+
+  if (palierAtteint) {
+    label.textContent = "Palier d'équipe des 5k : atteint";
+    pill.textContent = 'Désactiver';
+    pill.className = 'palier-pill on';
+    card15.className = 'proj-card dim';
+    card20.className = 'proj-card active';
+  } else {
+    label.textContent = "Palier d'équipe des 5k : pas encore atteint";
+    pill.textContent = 'Activer';
+    pill.className = 'palier-pill';
+    card15.className = 'proj-card active';
+    card20.className = 'proj-card dim';
+  }
+}
+
+function togglePalier() {
+  palierAtteint = !palierAtteint;
+  updatePalierUI();
+  localStorage.setItem(PALIER_KEY, JSON.stringify(palierAtteint));
+}
+
+function updateProjection(rate, closed) {
+  const restantes15 = Math.max(VENTES_NEEDED_15 - closed, 0);
+  const restantes20 = Math.max(VENTES_NEEDED_20 - closed, 0);
+
+  document.getElementById('ventes-restantes-15').textContent = restantes15 + (restantes15 > 1 ? ' ventes' : ' vente');
+  document.getElementById('ventes-restantes-20').textContent = restantes20 + (restantes20 > 1 ? ' ventes' : ' vente');
+
+  const calls15 = document.getElementById('calls-restants-15');
+  const calls20 = document.getElementById('calls-restants-20');
+
+  if (restantes15 === 0) {
+    calls15.textContent = 'Objectif atteint';
+  } else if (rate > 0) {
+    const n = Math.ceil(restantes15 / (rate / 100));
+    calls15.textContent = n + (n > 1 ? ' calls restants' : ' call restant');
+  } else {
+    calls15.textContent = 'Ajoute des calls pour estimer';
+  }
+
+  if (restantes20 === 0) {
+    calls20.textContent = 'Objectif atteint';
+  } else if (rate > 0) {
+    const n = Math.ceil(restantes20 / (rate / 100));
+    calls20.textContent = n + (n > 1 ? ' calls restants' : ' call restant');
+  } else {
+    calls20.textContent = 'Ajoute des calls pour estimer';
+  }
+}
+
+function render() {
+  const total = calls.length;
+  const closed = calls.filter(c => c.result === 'closed').length;
+  const rate = total > 0 ? Math.round((closed / total) * 100) : 0;
+
+  document.getElementById('rate').textContent = rate + '%';
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-closed').textContent = closed;
+
+  updateProjection(rate, closed);
+
+  const list = document.getElementById('call-list');
+  if (calls.length === 0) {
+    list.innerHTML = '<div class="empty-state">Aucun call enregistré pour l\'instant.</div>';
+    return;
+  }
+
+  const sorted = calls.slice().sort((a, b) => b.date.localeCompare(a.date));
+  list.innerHTML = sorted.map(c => `
+    <div class="call-row">
+      <div class="call-info">
+        <div class="name">${escapeHtml(c.prospect)}</div>
+        <div class="date">${formatDate(c.date)}</div>
+      </div>
+      <div class="row-with-delete">
+        <span class="call-status ${c.result === 'closed' ? 'status-closed' : 'status-perdu'}">${c.result === 'closed' ? 'Closé' : 'Perdu'}</span>
+        <button class="delete-btn" aria-label="Supprimer" onclick="deleteCall('${c.id}')">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function saveCalls() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(calls));
+}
+
+function addCall() {
+  const prospectInput = document.getElementById('prospect');
+  const dateInput = document.getElementById('call-date');
+  const errorMsg = document.getElementById('error-msg');
+  const prospect = prospectInput.value.trim();
+  const date = dateInput.value || todayStr();
+
+  if (!prospect || !selectedResult) {
+    errorMsg.style.display = 'block';
+    return;
+  }
+  errorMsg.style.display = 'none';
+
+  calls.push({
+    id: Date.now().toString(),
+    prospect: prospect,
+    date: date,
+    result: selectedResult
+  });
+
+  prospectInput.value = '';
+  dateInput.value = todayStr();
+  setResult(null);
+  saveCalls();
+  render();
+}
+
+function deleteCall(id) {
+  calls = calls.filter(c => c.id !== id);
+  saveCalls();
+  render();
+}
+
+function init() {
+  document.getElementById('call-date').value = todayStr();
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) calls = JSON.parse(stored);
+  } catch (e) {
+    calls = [];
+  }
+  try {
+    const storedPalier = localStorage.getItem(PALIER_KEY);
+    if (storedPalier) palierAtteint = JSON.parse(storedPalier);
+  } catch (e) {
+    palierAtteint = false;
+  }
+  updatePalierUI();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
