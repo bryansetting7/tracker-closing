@@ -121,9 +121,21 @@
   .inline-edit{display:flex;gap:8px;align-items:center;margin-top:8px}
   .inline-edit input{padding:8px 10px;font-size:13px}
   .inline-edit button{padding:8px 12px;border-radius:9px;border:1px solid #e0ddd6;background:#fbfaf8;font:600 12px 'Instrument Sans';cursor:pointer;white-space:nowrap}
-  .chart-wrap{position:relative;height:220px;margin-top:14px}
+  .chart-wrap{position:relative;height:240px;margin-top:14px}
   .chart-empty{text-align:center;padding:40px 0;font-size:13px;color:#a8a59e}
   #print-meta{display:none}
+  @media (min-width:860px){
+    body{display:grid;grid-template-columns:220px 1fr;grid-template-rows:auto 1fr;grid-template-areas:"nav head" "nav main";min-height:100vh}
+    .head{grid-area:head;position:static;max-width:960px;width:100%;margin:0 auto;border-bottom:1px solid #e6e3dd;padding:24px 32px 16px}
+    main{grid-area:main;max-width:960px;width:100%;margin:0 auto;padding:24px 32px 48px;overflow:visible}
+    .tabbar{grid-area:nav;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:3px;border-top:none;border-right:1px solid #e6e3dd;padding:28px 14px;position:sticky;top:0;align-self:start;height:100vh;background:#fbfaf8}
+    .tabbar button{flex-direction:row;justify-content:flex-start;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;font-size:13px}
+    .tabbar button.on{background:#eeece7}
+    .tabbar .dot{width:6px;height:6px;border-radius:50%}
+    #view-ajouter,#view-historique,#view-reglages{max-width:600px;margin:0 auto}
+    .stack.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+    .stack.grid2>.card:first-of-type,.stack.grid2 .duo,.stack.grid2>#export-pdf-btn{grid-column:1/-1}
+  }
   @media print{
     .tabbar,.seg,#export-pdf-btn{display:none!important}
     body{background:#fff}
@@ -148,7 +160,7 @@
 
 <main>
   <!-- SUIVI -->
-  <section id="view-suivi" class="stack">
+  <section id="view-suivi" class="stack grid2">
     <div class="card">
       <div class="cap">Revenu total depuis le début</div>
       <div class="hero" id="total">0 €</div>
@@ -294,7 +306,7 @@
   </section>
 
   <!-- STATS -->
-  <section id="view-stats" class="stack hide">
+  <section id="view-stats" class="stack grid2 hide">
     <div id="print-meta"></div>
     <button type="button" class="btn ghost" id="export-pdf-btn" onclick="exportPdf()">Exporter en PDF</button>
     <div class="card">
@@ -843,6 +855,44 @@ function renderClientsSettings(){
 
 let chartRevenu = null, chartObjections = null, chartTaux = null, chartOffres = null;
 
+function makeValueLabelPlugin(values, format, color){
+  return {
+    id: 'valueLabels' + Math.random().toString(36).slice(2),
+    afterDatasetsDraw(chart){
+      const meta = chart.getDatasetMeta(0);
+      if (!meta || !meta.data || !meta.data.length) return;
+      const ctx = chart.ctx;
+      const horiz = chart.options.indexAxis === 'y';
+      ctx.save();
+      ctx.font = "600 11px 'IBM Plex Mono', monospace";
+      ctx.fillStyle = color || '#16181b';
+      meta.data.forEach((el, i) => {
+        const label = format(values[i]);
+        if (horiz) {
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(label, el.x + 8, el.y);
+        } else {
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(label, el.x, el.y - 7);
+        }
+      });
+      ctx.restore();
+    }
+  };
+}
+
+const TOOLTIP_STYLE = {
+  backgroundColor: '#16181b',
+  titleFont: { family: 'Instrument Sans', size: 11, weight: '600' },
+  bodyFont: { family: 'IBM Plex Mono', size: 12 },
+  padding: 10,
+  cornerRadius: 10,
+  displayColors: false,
+  caretSize: 5
+};
+
 function monthKey(iso){
   const p = String(iso).split('-');
   return p[0] + '-' + p[1];
@@ -883,18 +933,26 @@ function renderCharts(){
         datasets: [{
           data: monthKeys.map(k => monthTotals[k]),
           backgroundColor: '#1c8a53',
-          borderRadius: 6,
-          maxBarThickness: 40
+          hoverBackgroundColor: '#146b3f',
+          borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
+          borderSkipped: false,
+          barPercentage: 0.5,
+          categoryPercentage: 0.6
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => euros(ctx.raw) } } },
+        layout: { padding: { top: 20 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: Object.assign({}, TOOLTIP_STYLE, { callbacks: { title: () => '', label: ctx => euros(ctx.raw) } })
+        },
         scales: {
-          y: { beginAtZero: true, ticks: { callback: v => euros(v), font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#efede8' } },
-          x: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false } }
+          y: { beginAtZero: true, grace: '15%', ticks: { maxTicksLimit: 5, callback: v => euros(v), font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#f2f0eb' }, border: { display: false } },
+          x: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: '#e0ddd6' } }
         }
-      }
+      },
+      plugins: [ makeValueLabelPlugin(monthKeys.map(k => monthTotals[k]), euros, '#16181b') ]
     });
   }
 
@@ -918,20 +976,28 @@ function renderCharts(){
         labels: offerKeys,
         datasets: [{
           data: offerKeys.map(k => offerCounts[k]),
-          backgroundColor: '#5b6ee1',
-          borderRadius: 6,
-          maxBarThickness: 32
+          backgroundColor: '#4d5b8c',
+          hoverBackgroundColor: '#3c4870',
+          borderRadius: { topLeft: 0, bottomLeft: 0, topRight: 4, bottomRight: 4 },
+          borderSkipped: false,
+          barPercentage: 0.5,
+          categoryPercentage: 0.6
         }]
       },
       options: {
         indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw + (ctx.raw > 1 ? ' ventes' : ' vente') } } },
+        layout: { padding: { right: 34 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: Object.assign({}, TOOLTIP_STYLE, { callbacks: { title: () => '', label: ctx => ctx.raw + (ctx.raw > 1 ? ' ventes' : ' vente') } })
+        },
         scales: {
-          x: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#efede8' } },
-          y: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false } }
+          x: { beginAtZero: true, grace: '15%', ticks: { stepSize: 1, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#f2f0eb' }, border: { display: false } },
+          y: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: '#e0ddd6' } }
         }
-      }
+      },
+      plugins: [ makeValueLabelPlugin(offerKeys.map(k => offerCounts[k]), v => String(v), '#16181b') ]
     });
   }
 
@@ -957,19 +1023,27 @@ function renderCharts(){
         datasets: [{
           data: objKeys.map(k => objectionCounts[k]),
           backgroundColor: '#a6650f',
-          borderRadius: 6,
-          maxBarThickness: 28
+          hoverBackgroundColor: '#8a5209',
+          borderRadius: { topLeft: 0, bottomLeft: 0, topRight: 4, bottomRight: 4 },
+          borderSkipped: false,
+          barPercentage: 0.5,
+          categoryPercentage: 0.6
         }]
       },
       options: {
         indexAxis: 'y',
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw + (ctx.raw > 1 ? ' fois' : ' fois') } } },
+        layout: { padding: { right: 30 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: Object.assign({}, TOOLTIP_STYLE, { callbacks: { title: () => '', label: ctx => ctx.raw + ' fois' } })
+        },
         scales: {
-          x: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#efede8' } },
-          y: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false } }
+          x: { beginAtZero: true, grace: '15%', ticks: { stepSize: 1, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#f2f0eb' }, border: { display: false } },
+          y: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: '#e0ddd6' } }
         }
-      }
+      },
+      plugins: [ makeValueLabelPlugin(objKeys.map(k => objectionCounts[k]), v => String(v), '#16181b') ]
     });
   }
 
@@ -994,18 +1068,26 @@ function renderCharts(){
         datasets: [{
           data: tauxData.map(d => d.rate),
           backgroundColor: '#16181b',
-          borderRadius: 6,
-          maxBarThickness: 40
+          hoverBackgroundColor: '#2b2e33',
+          borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
+          borderSkipped: false,
+          barPercentage: 0.5,
+          categoryPercentage: 0.6
         }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw + '%' } } },
+        layout: { padding: { top: 20 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: Object.assign({}, TOOLTIP_STYLE, { callbacks: { title: () => '', label: ctx => ctx.raw + '%' } })
+        },
         scales: {
-          y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%', font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#efede8' } },
-          x: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false } }
+          y: { beginAtZero: true, max: 100, ticks: { maxTicksLimit: 5, callback: v => v + '%', font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#f2f0eb' }, border: { display: false } },
+          x: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: '#e0ddd6' } }
         }
-      }
+      },
+      plugins: [ makeValueLabelPlugin(tauxData.map(d => d.rate), v => v + '%', '#16181b') ]
     });
   }
 }
