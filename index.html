@@ -80,6 +80,7 @@
   .row button.on-green{background:#e8f3ec;border-color:#1c8a53;color:#146b3f}
   .row button.on-red{background:#fbeceb;border-color:#b83a2e;color:#b83a2e}
   .row button.on-gray{background:#f1efea;border-color:#8a8880;color:#5f5e58}
+  .row button.on-blue{background:#eaecf5;border-color:#4d5b8c;color:#3c4870}
   textarea{width:100%;padding:12px 13px;border:1px solid #e0ddd6;border-radius:11px;background:#fbfaf8;font-size:14px;color:#16181b;font-family:'Instrument Sans',sans-serif;resize:vertical;min-height:64px}
   textarea::placeholder{color:#b3b0a8}
   textarea:focus{outline:none;border-color:#16181b}
@@ -94,7 +95,7 @@
   .item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 0;border-bottom:1px solid #f1efea}
   .item:last-child{border-bottom:none}
   .item .l{display:flex;flex-direction:column;gap:3px;min-width:0}
-  .item .name-row{display:flex;align-items:center;gap:7px}
+  .item .name-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;row-gap:5px}
   .item .name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tag{font-weight:600;font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;padding:3px 7px;border-radius:99px;background:#f1efea;color:#6c6a64;white-space:nowrap}
   .meta{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8a8880}
@@ -105,6 +106,7 @@
   .status.perdu{background:#fbeceb;color:#b83a2e}
   .status.prime{background:#f1efea;color:#6c6a64}
   .status.noshow{background:#fef6e7;color:#a6650f}
+  .status.suivi{background:#eaecf5;color:#3c4870}
   .delta{font-weight:600}
   .delta.up{color:#1c8a53}
   .delta.down{color:#b83a2e}
@@ -177,6 +179,7 @@
         <div class="cap">Taux de closing</div>
         <div class="big" id="rate">0%</div>
         <div class="sub" id="rate-sub">0 closés / 0 tenus</div>
+        <div class="sub hide" id="view-suivi-link" style="margin-top:8px"><a href="javascript:void(0)" onclick="viewSuivis()" style="color:#16181b;font-weight:600;text-decoration:underline">Voir les suivis prévus →</a></div>
       </div>
       <div class="card">
         <div class="cap">Taux de présence</div>
@@ -237,12 +240,17 @@
             <button type="button" id="r-closed" onclick="setResult('closed')">Closé</button>
             <button type="button" id="r-perdu" onclick="setResult('perdu')">Perdu</button>
             <button type="button" id="r-noshow" onclick="setResult('noshow')">Absent</button>
+            <button type="button" id="r-suivi" onclick="setResult('suivi')">Suivi prévu</button>
           </div>
         </div>
         <div class="field hide" id="commission-field">
           <label for="commission">Commission gagnée sur ce call (€)</label>
           <div class="row hide" id="offer-buttons-row" style="margin-bottom:8px"></div>
           <input type="number" id="commission" min="0" step="1" placeholder="Montant en euros">
+        </div>
+        <div class="field hide" id="suivi-date-field">
+          <label for="suivi-date">Date du suivi prévu</label>
+          <input type="date" id="suivi-date">
         </div>
         <div class="field">
           <label for="objection">Objection rencontrée (optionnel)</label>
@@ -261,7 +269,7 @@
           <label for="objection-autre">Précise l'objection</label>
           <input type="text" id="objection-autre" placeholder="Précise l'objection">
         </div>
-        <div class="err" id="call-err">Renseigne l'infopreneur, le nom, le résultat, et la commission si le call est closé.</div>
+        <div class="err" id="call-err">Renseigne l'infopreneur, le nom, le résultat, la commission si le call est closé, et la date de suivi si un suivi est prévu.</div>
         <button type="button" class="btn" onclick="addCall()">Ajouter le call</button>
       </div>
 
@@ -316,6 +324,7 @@
       <button type="button" data-sf="closed" onclick="setStatusFilter('closed')">Closés</button>
       <button type="button" data-sf="perdu" onclick="setStatusFilter('perdu')">Perdus</button>
       <button type="button" data-sf="noshow" onclick="setStatusFilter('noshow')">Absents</button>
+      <button type="button" data-sf="suivi" onclick="setStatusFilter('suivi')">Suivis</button>
     </div>
     <div class="list" id="list"></div>
   </section>
@@ -539,7 +548,10 @@ function setResult(r){
   $('r-closed').className = r === 'closed' ? 'on-green' : '';
   $('r-perdu').className = r === 'perdu' ? 'on-red' : '';
   $('r-noshow').className = r === 'noshow' ? 'on-gray' : '';
+  $('r-suivi').className = r === 'suivi' ? 'on-blue' : '';
   $('commission-field').classList.toggle('hide', r !== 'closed');
+  $('suivi-date-field').classList.toggle('hide', r !== 'suivi');
+  if (r === 'suivi' && !$('suivi-date').value) $('suivi-date').value = today();
   updateOfferField();
 }
 
@@ -588,13 +600,20 @@ function viewNoShows(){
   setTab('historique');
 }
 
+function viewSuivis(){
+  setStatusFilter('suivi');
+  setTab('historique');
+}
+
 function render(){
   const cs = scoped(calls), ps = scoped(primes);
   const closedCalls = cs.filter(c => c.result === 'closed');
   const heldCalls = cs.filter(c => c.result !== 'noshow');
   const noshowCalls = cs.filter(c => c.result === 'noshow');
-  const count = cs.length, closed = closedCalls.length, held = heldCalls.length, noshow = noshowCalls.length;
-  const rate = held ? Math.round(closed / held * 100) : 0;
+  const suiviCalls = cs.filter(c => c.result === 'suivi');
+  const concludedCalls = heldCalls.filter(c => c.result !== 'suivi');
+  const count = cs.length, closed = closedCalls.length, held = heldCalls.length, noshow = noshowCalls.length, suivi = suiviCalls.length, concluded = concludedCalls.length;
+  const rate = concluded ? Math.round(closed / concluded * 100) : 0;
   const showRate = count ? Math.round(held / count * 100) : 0;
   const comm = closedCalls.reduce((a,c) => a + (c.commission || 0), 0);
   const prim = ps.reduce((a,p) => a + (p.montant || 0), 0);
@@ -618,7 +637,8 @@ function render(){
   $('comm').textContent = euros(comm);
   $('prim').textContent = euros(prim);
   $('rate').textContent = rate + '%';
-  $('rate-sub').textContent = closed + (closed > 1 ? ' closés / ' : ' closé / ') + held + (held > 1 ? ' tenus' : ' tenu');
+  $('rate-sub').textContent = closed + (closed > 1 ? ' closés / ' : ' closé / ') + concluded + (concluded > 1 ? ' conclus' : ' conclu') + (suivi ? ' · ' + suivi + (suivi > 1 ? ' suivis en attente' : ' suivi en attente') : '');
+  $('view-suivi-link').classList.toggle('hide', suivi === 0);
   $('showrate').textContent = showRate + '%';
   $('showrate-sub').textContent = held + (held > 1 ? ' tenus / ' : ' tenu / ') + count + (count > 1 ? ' programmés' : ' programmé') + (noshow ? ' · ' + noshow + (noshow > 1 ? ' absents' : ' absent') : '');
   $('view-noshow-link').classList.toggle('hide', noshow === 0);
@@ -660,15 +680,16 @@ function render(){
   const items = csForList.map(c => ({
     date: c.date, name: esc(c.prospect), client: clientName(c.clientId),
     amount: c.result === 'closed' && c.commission ? '+ ' + euros(c.commission) : '',
-    status: c.result === 'closed' ? 'Closé' : (c.result === 'noshow' ? 'Absent' : 'Perdu'),
-    cls: c.result === 'closed' ? 'closed' : (c.result === 'noshow' ? 'noshow' : 'perdu'),
+    status: c.result === 'closed' ? 'Closé' : (c.result === 'noshow' ? 'Absent' : (c.result === 'suivi' ? 'Suivi prévu' : 'Perdu')),
+    cls: c.result === 'closed' ? 'closed' : (c.result === 'noshow' ? 'noshow' : (c.result === 'suivi' ? 'suivi' : 'perdu')),
     objection: objectionLabel(c),
     offerName: c.offerName || '',
+    suiviDate: c.result === 'suivi' && c.suiviDate ? fmtDate(c.suiviDate) : '',
     del: "deleteCall('" + c.id + "')"
   })).concat(psForList.map(p => ({
     date: p.date, name: p.label ? esc(p.label) : 'Prime', client: clientName(p.clientId),
     amount: '+ ' + euros(p.montant), status: 'Prime', cls: 'prime',
-    objection: '', offerName: '',
+    objection: '', offerName: '', suiviDate: '',
     del: "deletePrime('" + p.id + "')"
   }))).sort((a,b) => String(b.date).localeCompare(String(a.date)));
 
@@ -676,7 +697,8 @@ function render(){
     tous: 'Aucun élément enregistré pour l\'instant.',
     closed: 'Aucun call closé pour l\'instant.',
     perdu: 'Aucun call perdu pour l\'instant.',
-    noshow: 'Aucun no-show pour l\'instant.'
+    noshow: 'Aucun no-show pour l\'instant.',
+    suivi: 'Aucun suivi prévu pour l\'instant.'
   }[statusFilter];
 
   $('list').innerHTML = items.length === 0
@@ -684,7 +706,7 @@ function render(){
     : items.map(i => `
       <div class="item">
         <div class="l">
-          <div class="name-row"><span class="name">${i.name}</span><span class="tag">${esc(i.client)}</span>${i.offerName ? '<span class="tag offer-tag">'+esc(i.offerName)+'</span>' : ''}${i.objection ? '<span class="tag obj-tag">'+i.objection+'</span>' : ''}</div>
+          <div class="name-row"><span class="name">${i.name}</span><span class="tag">${esc(i.client)}</span>${i.offerName ? '<span class="tag offer-tag">'+esc(i.offerName)+'</span>' : ''}${i.objection ? '<span class="tag obj-tag">'+i.objection+'</span>' : ''}${i.suiviDate ? '<span class="tag" style="background:#eaecf5;color:#3c4870">Suivi le '+i.suiviDate+'</span>' : ''}</div>
           <div class="meta"><span>${fmtDate(i.date)}</span><span class="amt">${i.amount}</span></div>
         </div>
         <div class="r">
@@ -697,7 +719,8 @@ function render(){
 function addCall(){
   const prospect = $('prospect').value.trim();
   const amount = parseFloat($('commission').value);
-  if (!prospect || !callClientId || !callResult || (callResult === 'closed' && (!amount || amount <= 0))) {
+  const suiviDateVal = $('suivi-date').value;
+  if (!prospect || !callClientId || !callResult || (callResult === 'closed' && (!amount || amount <= 0)) || (callResult === 'suivi' && !suiviDateVal)) {
     $('call-err').style.display = 'block';
     return;
   }
@@ -708,11 +731,12 @@ function addCall(){
     date: $('call-date').value || today(), result: callResult,
     commission: callResult === 'closed' ? amount : 0,
     offerName: callResult === 'closed' ? selectedOfferName : null,
+    suiviDate: callResult === 'suivi' ? suiviDateVal : null,
     objection: objectionVal,
     objectionDetail: objectionVal === 'autre' ? $('objection-autre').value.trim() : ''
   });
   localStorage.setItem(KEYS.calls, JSON.stringify(calls));
-  $('prospect').value = ''; $('commission').value = ''; $('call-date').value = today();
+  $('prospect').value = ''; $('commission').value = ''; $('call-date').value = today(); $('suivi-date').value = today();
   $('objection').value = ''; $('objection-autre').value = ''; $('objection-autre-field').classList.add('hide');
   selectedOfferId = null; selectedOfferName = null;
   setCallClient(null); setResult(null);
@@ -1073,7 +1097,7 @@ function renderCharts(){
   }
 
   const tauxData = clients.map(c => {
-    const clientCalls = calls.filter(x => x.clientId === c.id && x.result !== 'noshow');
+    const clientCalls = calls.filter(x => x.clientId === c.id && x.result !== 'noshow' && x.result !== 'suivi');
     const closedN = clientCalls.filter(x => x.result === 'closed').length;
     const rate = clientCalls.length ? Math.round(closedN / clientCalls.length * 100) : 0;
     return { name: c.name, rate: rate, count: clientCalls.length };
@@ -1127,10 +1151,10 @@ function renderComparison(){
   function statsFor(key){
     const csM = cs.filter(c => monthKey(c.date) === key);
     const psM = ps.filter(p => monthKey(p.date) === key);
-    const heldM = csM.filter(c => c.result !== 'noshow');
+    const concludedM = csM.filter(c => c.result !== 'noshow' && c.result !== 'suivi');
     const closedM = csM.filter(c => c.result === 'closed');
     const ca = closedM.reduce((a,c) => a + (c.commission || 0), 0) + psM.reduce((a,p) => a + (p.montant || 0), 0);
-    const rate = heldM.length ? Math.round(closedM.length / heldM.length * 100) : 0;
+    const rate = concludedM.length ? Math.round(closedM.length / concludedM.length * 100) : 0;
     return { ca: ca, rate: rate };
   }
 
@@ -1400,6 +1424,7 @@ function init(){
   weeklyObjectifs = read(KEYS.weeklyObjectifs, {}) || {};
   $('call-date').value = today();
   $('prime-date').value = today();
+  $('suivi-date').value = today();
   $('google-client-id').value = localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || '';
   updateAgendaCardVisibility();
   renderFilterChips();
