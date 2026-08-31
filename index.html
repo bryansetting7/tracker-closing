@@ -94,6 +94,9 @@
   .list{background:#fff;border:1px solid #e6e3dd;border-radius:18px;padding:6px 16px}
   .item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 0;border-bottom:1px solid #f1efea}
   .item:last-child{border-bottom:none}
+  .item.clickable{cursor:pointer;margin:0 -10px;padding:14px 10px;border-radius:12px}
+  .item.clickable:hover{background:#fbfaf8}
+  .item .chev{color:#c3c2b7;font-size:14px;margin-left:2px}
   .item .l{display:flex;flex-direction:column;gap:3px;min-width:0}
   .item .name-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;row-gap:5px}
   .item .name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -128,6 +131,26 @@
   .chart-wrap{position:relative;height:240px;margin-top:14px}
   .chart-empty{text-align:center;padding:40px 0;font-size:13px;color:#a8a59e}
   #print-meta{display:none}
+  .modal-overlay{position:fixed;inset:0;background:rgba(22,24,27,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50}
+  .modal-card{background:#fff;border-radius:22px 22px 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:22px 20px calc(22px + env(safe-area-inset-bottom))}
+  .modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .modal-title{font-size:19px;font-weight:600;letter-spacing:-.3px;word-break:break-word}
+  .modal-close{border:none;background:#f1efea;color:#5f5e58;width:30px;height:30px;border-radius:50%;font-size:14px;cursor:pointer;flex:none}
+  .modal-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+  .modal-summary{display:flex;gap:18px;margin-top:18px;padding:14px 16px;background:#fbfaf8;border:1px solid #efede8;border-radius:14px;flex-wrap:wrap}
+  .modal-summary .col{display:flex;flex-direction:column;gap:3px}
+  .modal-summary .k{font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:#8a8880}
+  .modal-summary .v{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:14px}
+  .timeline{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+  .timeline-item{border:1px solid #efede8;border-radius:14px;padding:12px 14px}
+  .timeline-item .trow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .timeline-item .tdate{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8a8880}
+  .timeline-item .tdetail{font-size:12px;color:#5f5e58;margin-top:7px;line-height:1.55}
+  .timeline-item .tdel{border:none;background:none;color:#b3b0a8;font-size:11px;cursor:pointer;padding:7px 0 0;font-weight:600}
+  @media (min-width:860px){
+    .modal-overlay{align-items:center;padding:24px}
+    .modal-card{border-radius:18px;max-height:80vh}
+  }
   @media (min-width:860px){
     body{display:grid;grid-template-columns:220px 1fr;grid-template-rows:auto 1fr;grid-template-areas:"nav head" "nav main";min-height:100vh}
     .head{grid-area:head;position:static;max-width:960px;width:100%;margin:0 auto;border-bottom:1px solid #e6e3dd;padding:24px 32px 16px}
@@ -421,6 +444,20 @@
   <button type="button" id="tab-reglages" onclick="setTab('reglages')"><span class="dot"></span>Réglages</button>
 </nav>
 
+<div class="modal-overlay hide" id="prospect-modal" onclick="if(event.target===this) closeProspectCard()">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="pm-name">—</div>
+        <div class="modal-tags" id="pm-tags"></div>
+      </div>
+      <button type="button" class="modal-close" onclick="closeProspectCard()" aria-label="Fermer">✕</button>
+    </div>
+    <div class="modal-summary" id="pm-summary"></div>
+    <div class="timeline" id="pm-timeline"></div>
+  </div>
+</div>
+
 <script>
 const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1'};
 const TITLES = {suivi:'Suivi', ajouter:'Nouvelle entrée', agenda:'Agenda', historique:'Historique', stats:'Statistiques', reglages:'Réglages'};
@@ -433,6 +470,7 @@ let offers = {};
 let weeklyObjectifs = {};
 let tab = 'suivi', filter = 'tous', mode = 'call', statusFilter = 'tous';
 let callClientId = null, callResult = null, primeClientId = null;
+let currentProspectKey = null;
 let selectedOfferId = null, selectedOfferName = null;
 
 const $ = id => document.getElementById(id);
@@ -678,7 +716,7 @@ function render(){
   const psForList = statusFilter === 'tous' ? ps : [];
 
   const items = csForList.map(c => ({
-    date: c.date, name: esc(c.prospect), client: clientName(c.clientId),
+    id: c.id, type: 'call', date: c.date, name: esc(c.prospect), client: clientName(c.clientId),
     amount: c.result === 'closed' && c.commission ? '+ ' + euros(c.commission) : '',
     status: c.result === 'closed' ? 'Closé' : (c.result === 'noshow' ? 'Absent' : (c.result === 'suivi' ? 'Suivi prévu' : 'Perdu')),
     cls: c.result === 'closed' ? 'closed' : (c.result === 'noshow' ? 'noshow' : (c.result === 'suivi' ? 'suivi' : 'perdu')),
@@ -687,11 +725,11 @@ function render(){
     suiviDate: c.result === 'suivi' && c.suiviDate ? fmtDate(c.suiviDate) : '',
     del: "deleteCall('" + c.id + "')"
   })).concat(psForList.map(p => ({
-    date: p.date, name: p.label ? esc(p.label) : 'Prime', client: clientName(p.clientId),
+    id: p.id, type: 'prime', date: p.date, name: p.label ? esc(p.label) : 'Prime', client: clientName(p.clientId),
     amount: '+ ' + euros(p.montant), status: 'Prime', cls: 'prime',
     objection: '', offerName: '', suiviDate: '',
     del: "deletePrime('" + p.id + "')"
-  }))).sort((a,b) => String(b.date).localeCompare(String(a.date)));
+  }))).sort((a,b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id)));
 
   const emptyMsg = {
     tous: 'Aucun élément enregistré pour l\'instant.',
@@ -704,14 +742,15 @@ function render(){
   $('list').innerHTML = items.length === 0
     ? '<div class="empty">' + emptyMsg + '</div>'
     : items.map(i => `
-      <div class="item">
+      <div class="item${i.type === 'call' ? ' clickable' : ''}"${i.type === 'call' ? ` onclick="openProspectCardByCallId('${i.id}')"` : ''}>
         <div class="l">
           <div class="name-row"><span class="name">${i.name}</span><span class="tag">${esc(i.client)}</span>${i.offerName ? '<span class="tag offer-tag">'+esc(i.offerName)+'</span>' : ''}${i.objection ? '<span class="tag obj-tag">'+i.objection+'</span>' : ''}${i.suiviDate ? '<span class="tag" style="background:#eaecf5;color:#3c4870">Suivi le '+i.suiviDate+'</span>' : ''}</div>
           <div class="meta"><span>${fmtDate(i.date)}</span><span class="amt">${i.amount}</span></div>
         </div>
         <div class="r">
           <span class="status ${i.cls}">${i.status}</span>
-          <button class="del" aria-label="Supprimer" onclick="${i.del}">✕</button>
+          ${i.type === 'call' ? '<span class="chev">›</span>' : ''}
+          <button class="del" aria-label="Supprimer" onclick="event.stopPropagation();${i.del}">✕</button>
         </div>
       </div>`).join('');
 }
@@ -771,6 +810,76 @@ function deletePrime(id){
   localStorage.setItem(KEYS.primes, JSON.stringify(primes));
   render();
 }
+
+function prospectKey(clientId, prospect){
+  return clientId + '|' + String(prospect || '').trim().toLowerCase();
+}
+
+function openProspectCardByCallId(id){
+  const c = calls.find(x => x.id === id);
+  if (!c) return;
+  openProspectCard(c.clientId, c.prospect);
+}
+
+function openProspectCard(clientId, prospect){
+  currentProspectKey = prospectKey(clientId, prospect);
+  const entries = calls.filter(c => prospectKey(c.clientId, c.prospect) === currentProspectKey);
+  if (!entries.length) { currentProspectKey = null; return; }
+  renderProspectCard();
+  $('prospect-modal').classList.remove('hide');
+}
+
+function closeProspectCard(){
+  $('prospect-modal').classList.add('hide');
+  currentProspectKey = null;
+}
+
+function renderProspectCard(){
+  if (!currentProspectKey) return;
+  const entries = calls
+    .filter(c => prospectKey(c.clientId, c.prospect) === currentProspectKey)
+    .sort((a,b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id)));
+  if (!entries.length) { closeProspectCard(); return; }
+
+  const latest = entries[0], first = entries[entries.length - 1];
+  const totalComm = entries.filter(c => c.result === 'closed').reduce((a,c) => a + (c.commission || 0), 0);
+  const closedN = entries.filter(c => c.result === 'closed').length;
+  const statusLabel = latest.result === 'closed' ? 'Closé' : (latest.result === 'noshow' ? 'Absent' : (latest.result === 'suivi' ? 'Suivi prévu' : 'Perdu'));
+  const statusCls = latest.result === 'closed' ? 'closed' : (latest.result === 'noshow' ? 'noshow' : (latest.result === 'suivi' ? 'suivi' : 'perdu'));
+
+  $('pm-name').textContent = latest.prospect;
+  $('pm-tags').innerHTML = `<span class="tag">${esc(clientName(latest.clientId))}</span><span class="status ${statusCls}">${statusLabel}</span>`;
+  $('pm-summary').innerHTML = `
+    <div class="col"><span class="k">${entries.length > 1 ? 'Calls' : 'Call'}</span><span class="v">${entries.length}</span></div>
+    <div class="col"><span class="k">1er contact</span><span class="v">${fmtDate(first.date)}</span></div>
+    <div class="col"><span class="k">Commission générée</span><span class="v">${euros(totalComm)}</span></div>
+    ${closedN > 0 ? `<div class="col"><span class="k">Ventes</span><span class="v">${closedN}</span></div>` : ''}
+  `;
+  $('pm-timeline').innerHTML = entries.map(c => {
+    const label = c.result === 'closed' ? 'Closé' : (c.result === 'noshow' ? 'Absent' : (c.result === 'suivi' ? 'Suivi prévu' : 'Perdu'));
+    const cls = c.result === 'closed' ? 'closed' : (c.result === 'noshow' ? 'noshow' : (c.result === 'suivi' ? 'suivi' : 'perdu'));
+    const details = [];
+    if (c.result === 'closed' && c.commission) details.push('Commission : ' + euros(c.commission));
+    if (c.offerName) details.push('Offre : ' + esc(c.offerName));
+    if (c.result === 'suivi' && c.suiviDate) details.push('Suivi prévu le ' + fmtDate(c.suiviDate));
+    const obj = objectionLabel(c);
+    if (obj) details.push('Objection : ' + obj);
+    return `<div class="timeline-item">
+      <div class="trow"><span class="tdate">${fmtDate(c.date)}</span><span class="status ${cls}">${label}</span></div>
+      ${details.length ? '<div class="tdetail">' + details.join(' · ') + '</div>' : ''}
+      <button class="tdel" onclick="deleteCallFromCard('${c.id}')">Supprimer ce call</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteCallFromCard(id){
+  deleteCall(id);
+  renderProspectCard();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('prospect-modal').classList.contains('hide')) closeProspectCard();
+});
 
 function addClient(){
   const input = $('new-client-name');
