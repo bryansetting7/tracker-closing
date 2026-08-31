@@ -90,6 +90,12 @@
   .btn:active{opacity:.85}
   .err{font-size:12px;line-height:1.5;color:#b83a2e;background:#fbeceb;border-radius:10px;padding:10px 12px;display:none}
   .ok{font-weight:500;font-size:12.5px;color:#1c8a53;background:#e8f3ec;border-radius:11px;padding:11px 13px;display:none}
+  .warn-banner{display:none;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;line-height:1.5;color:#8a5a12;background:#fdf1de;border:1px solid #f0d9ab;border-radius:12px;padding:11px 13px;margin-bottom:2px}
+  .warn-banner button{flex:none;padding:8px 12px;border:none;border-radius:9px;background:#8a5a12;color:#fff;font:600 12px 'Instrument Sans';cursor:pointer}
+  .save-fail{font-size:12.5px;line-height:1.5;color:#b83a2e;background:#fbeceb;border-radius:11px;padding:11px 13px;margin-bottom:2px}
+  .undo-toast{position:fixed;left:16px;right:16px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#16181b;color:#fff;border-radius:14px;padding:13px 15px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+  .undo-toast.hide{display:none}
+  .undo-toast button{flex:none;padding:8px 14px;border:none;border-radius:9px;background:#fff;color:#16181b;font:600 12.5px 'Instrument Sans';cursor:pointer}
   .note{font-size:12px;line-height:1.6;color:#8a8880;padding:0 4px;text-wrap:pretty}
   .list{background:#fff;border:1px solid #e6e3dd;border-radius:18px;padding:6px 16px}
   .item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 0;border-bottom:1px solid #f1efea}
@@ -172,6 +178,46 @@
     .chart-wrap{height:240px}
     #print-meta{display:block!important;margin-bottom:16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f5e58}
   }
+  body.dark,body.dark html{background:#15161a}
+  body.dark{color:#eceae4}
+  body.dark .head{background:#15161a;border-color:#2a2b30}
+  body.dark .eyebrow,body.dark .scope,body.dark .cap,body.dark .of,body.dark .sub,body.dark .note,body.dark .split .k,body.dark .modal-summary .k,body.dark .field label{color:#8d8b86}
+  body.dark .seg{background:#212227}
+  body.dark .seg button{color:#8d8b86}
+  body.dark .seg button.on{background:#2c2d33;color:#eceae4}
+  body.dark .card,body.dark .list,body.dark .modal-card{background:#1c1d22;border-color:#2a2b30}
+  body.dark .split{border-color:#2a2b30}
+  body.dark .split .sep{background:#2a2b30}
+  body.dark .bar{background:#2a2b30}
+  body.dark .detail{color:#b3b1ab}
+  body.dark input,body.dark select,body.dark textarea{background:#212227;border-color:#33343a;color:#eceae4}
+  body.dark input::placeholder,body.dark textarea::placeholder{color:#6d6b66}
+  body.dark input:focus,body.dark select:focus,body.dark textarea:focus{border-color:#eceae4}
+  body.dark .row button{background:#212227;border-color:#33343a;color:#8d8b86}
+  body.dark .row button.on{background:#eceae4;border-color:#eceae4;color:#15161a}
+  body.dark .btn{background:#eceae4;color:#15161a}
+  body.dark .btn.ghost{background:#212227;color:#eceae4;border-color:#33343a}
+  body.dark .item{border-color:#2a2b30}
+  body.dark .item.clickable:hover{background:#212227}
+  body.dark .tag{background:#2a2b30;color:#b3b1ab}
+  body.dark .meta{color:#8d8b86}
+  body.dark .del,body.dark .tdel{color:#6d6b66}
+  body.dark .empty,body.dark .chart-empty{color:#6d6b66}
+  body.dark .tabbar{background:#1c1d22;border-color:#2a2b30}
+  body.dark .tabbar button{color:#6d6b66}
+  body.dark .tabbar button.on{color:#eceae4}
+  body.dark .tabbar button.on.dot,body.dark .tabbar button.on .dot{background:#1c8a53}
+  body.dark .client-row-item{border-color:#2a2b30}
+  body.dark .inline-edit button{background:#212227;border-color:#33343a;color:#eceae4}
+  body.dark .modal-close{background:#2a2b30;color:#b3b1ab}
+  body.dark .modal-summary{background:#212227;border-color:#2a2b30}
+  body.dark .timeline-item{border-color:#2a2b30}
+  body.dark .timeline-item .tdate{color:#8d8b86}
+  body.dark .timeline-item .tdetail{color:#b3b1ab}
+  @media (min-width:860px){
+    body.dark .tabbar{background:#1c1d22}
+    body.dark .tabbar button.on{background:#2a2b30}
+  }
 </style>
 </head>
 <body>
@@ -186,6 +232,14 @@
 </div>
 
 <main>
+  <div class="warn-banner" id="export-reminder">
+    <span id="export-reminder-text">Ça fait un moment que tu n'as pas exporté tes données. Pense à faire une sauvegarde.</span>
+    <button type="button" onclick="exportData()">Exporter</button>
+  </div>
+  <div class="warn-banner" id="suivi-reminder" style="background:#eaecf5;border-color:#c7cdec;color:#3c4870">
+    <span id="suivi-reminder-text"></span>
+    <button type="button" style="background:#3c4870" onclick="viewSuivis()">Voir</button>
+  </div>
   <!-- SUIVI -->
   <section id="view-suivi" class="stack grid2">
     <div class="card">
@@ -229,6 +283,10 @@
       <div class="bar"><div id="bar-week"></div></div>
       <div class="detail" id="detail-week">Semaine en cours (lundi à dimanche).</div>
     </div>
+    <div class="card">
+      <div class="cap">Résumé de la semaine</div>
+      <div class="split" style="margin-top:6px;padding-top:0;border-top:none" id="weekly-digest"></div>
+    </div>
   </section>
 
   <!-- AJOUTER -->
@@ -251,7 +309,8 @@
         </div>
         <div class="field">
           <label for="prospect">Nom du prospect</label>
-          <input type="text" id="prospect" placeholder="Nom du prospect">
+          <input type="text" id="prospect" placeholder="Nom du prospect" oninput="checkDuplicateProspect()">
+          <div class="note hide" id="duplicate-warning" style="margin-top:2px"></div>
         </div>
         <div class="field">
           <label for="call-date">Date du call</label>
@@ -291,6 +350,10 @@
         <div class="field hide" id="objection-autre-field">
           <label for="objection-autre">Précise l'objection</label>
           <input type="text" id="objection-autre" placeholder="Précise l'objection">
+        </div>
+        <div class="field">
+          <label for="call-notes">Notes (optionnel)</label>
+          <textarea id="call-notes" placeholder="Contexte, ce qui a marché ou pas, prochaine étape..."></textarea>
         </div>
         <div class="err" id="call-err">Renseigne l'infopreneur, le nom, le résultat, la commission si le call est closé, et la date de suivi si un suivi est prévu.</div>
         <button type="button" class="btn" onclick="addCall()">Ajouter le call</button>
@@ -342,6 +405,9 @@
 
   <!-- HISTORIQUE -->
   <section id="view-historique" class="hide">
+    <div class="field" style="margin-bottom:10px">
+      <input type="text" id="historique-search" placeholder="Rechercher un prospect ou une offre..." oninput="render()">
+    </div>
     <div class="seg" id="status-filter" style="margin-bottom:12px">
       <button type="button" class="on" data-sf="tous" onclick="setStatusFilter('tous')">Tous</button>
       <button type="button" data-sf="closed" onclick="setStatusFilter('closed')">Closés</button>
@@ -376,6 +442,11 @@
       <div class="cap">Revenu par mois</div>
       <div class="chart-wrap"><canvas id="chart-revenu"></canvas></div>
       <div class="chart-empty hide" id="chart-revenu-empty">Pas encore assez de données pour un graphique.</div>
+    </div>
+    <div class="card">
+      <div class="cap">Historique des objectifs (6 derniers mois)</div>
+      <div class="note" style="margin-top:4px">Comparé à l'objectif mensuel actuel de la sélection.</div>
+      <div id="objectif-history" style="margin-top:10px"></div>
     </div>
     <div class="card">
       <div class="cap">Ventes par offre</div>
@@ -427,7 +498,33 @@
         <button type="button" class="btn ghost" style="flex:1" onclick="exportData()">Exporter (JSON)</button>
         <button type="button" class="btn ghost" style="flex:1" onclick="triggerImport()">Importer</button>
       </div>
+      <button type="button" class="btn ghost" style="width:100%;margin-top:8px" onclick="exportCSV()">Exporter en CSV (Excel/Sheets)</button>
       <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(this)">
+    </div>
+
+    <div class="card">
+      <div class="cap">Sauvegarde cloud (Google Drive)</div>
+      <div class="note" style="margin-top:8px" id="drive-not-configured">Utilise le même identifiant OAuth Google que pour l'Agenda (renseigné ci-dessus). Une fois connecté, tes données sont sauvegardées dans un fichier privé sur ton Drive, accessible uniquement par cette appli.</div>
+      <div id="drive-connected-block" class="hide" style="margin-top:10px">
+        <div class="note" id="drive-status">Non connecté.</div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button type="button" class="btn ghost" style="flex:1" onclick="driveBackupNow()">Sauvegarder maintenant</button>
+          <button type="button" class="btn ghost" style="flex:1" onclick="driveRestore()">Restaurer</button>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:#5f5e58">
+          <input type="checkbox" id="drive-autobackup-toggle" onchange="toggleDriveAutoBackup(this.checked)">
+          Sauvegarde automatique après chaque modification
+        </label>
+      </div>
+      <button type="button" class="btn ghost" style="width:100%;margin-top:10px" id="drive-connect-btn" onclick="connectGoogleDrive()">Connecter Google Drive</button>
+    </div>
+
+    <div class="card">
+      <div class="cap">Apparence</div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;color:#5f5e58">
+        <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode(this.checked)">
+        Mode sombre
+      </label>
     </div>
 
     <div class="ok" id="saved">Mis à jour.</div>
@@ -454,12 +551,111 @@
       <button type="button" class="modal-close" onclick="closeProspectCard()" aria-label="Fermer">✕</button>
     </div>
     <div class="modal-summary" id="pm-summary"></div>
-    <div class="timeline" id="pm-timeline"></div>
+    <div style="margin-top:14px">
+      <div class="field" style="gap:6px">
+        <label>Tags</label>
+        <div class="modal-tags" id="pm-custom-tags" style="margin-top:0"></div>
+        <div class="inline-edit" style="margin-top:6px">
+          <input type="text" id="pm-tag-input" placeholder="Ajouter un tag (ex: chaud, à relancer)">
+          <button type="button" onclick="addProspectTag()">Ajouter</button>
+        </div>
+      </div>
+    </div>
+    <button type="button" class="btn ghost" style="margin-top:14px" onclick="duplicateProspectCall()">Dupliquer un call pour ce prospect</button>
+    <div class="timeline" id="pm-timeline" style="margin-top:14px"></div>
   </div>
 </div>
 
+<div class="undo-toast hide" id="undo-toast">
+  <span id="undo-toast-text"></span>
+  <button type="button" onclick="undoDelete()">Annuler</button>
+</div>
+
 <script>
-const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1'};
+const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1', prospectTags:'closing-prospect-tags-v1'};
+const LAST_EXPORT_KEY = 'closing-last-export';
+const EXPORT_REMINDER_DAYS = 7;
+
+function persist(key, value){
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    scheduleDriveAutoBackup();
+    return true;
+  } catch(e){
+    showSaveError();
+    return false;
+  }
+}
+
+function showSaveError(){
+  let el = $('save-error-banner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'save-error-banner';
+    el.className = 'save-fail';
+    el.textContent = "⚠️ La sauvegarde a échoué (stockage plein ou navigation privée). Cette dernière modification n'est peut-être pas enregistrée — exporte tes données dès que possible pour ne rien perdre.";
+    const main = document.querySelector('main');
+    main.insertBefore(el, main.firstChild);
+  }
+  el.style.display = 'block';
+}
+
+function checkExportReminder(){
+  const banner = $('export-reminder');
+  if (!banner) return;
+  const hasData = calls.length > 0 || primes.length > 0 || clients.length > 0;
+  if (!hasData) { banner.style.display = 'none'; return; }
+  const lastRaw = localStorage.getItem(LAST_EXPORT_KEY);
+  const last = lastRaw ? parseInt(lastRaw, 10) : null;
+  const daysSince = last ? (Date.now() - last) / 86400000 : Infinity;
+  if (daysSince >= EXPORT_REMINDER_DAYS) {
+    $('export-reminder-text').textContent = last
+      ? `Dernière sauvegarde il y a ${Math.floor(daysSince)} jours. Pense à exporter tes données.`
+      : `Tu n'as jamais exporté tes données. Fais une sauvegarde pour ne rien perdre en cas de souci.`;
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function checkSuiviReminder(){
+  const banner = $('suivi-reminder');
+  if (!banner) return;
+  const todayIso = today();
+  const due = calls.filter(c => c.result === 'suivi' && c.suiviDate && c.suiviDate <= todayIso);
+  if (due.length === 0) { banner.style.display = 'none'; return; }
+  const overdue = due.filter(c => c.suiviDate < todayIso).length;
+  $('suivi-reminder-text').textContent = overdue > 0
+    ? `${due.length} suivi(s) à relancer, dont ${overdue} en retard.`
+    : `${due.length} suivi(s) prévu(s) aujourd'hui à relancer.`;
+  banner.style.display = 'flex';
+}
+
+let pendingRemoval = null;
+
+function flashUndo(label, onUndo, onCommit){
+  if (pendingRemoval) {
+    clearTimeout(pendingRemoval.timeoutId);
+    pendingRemoval.onCommit();
+  }
+  const toast = $('undo-toast');
+  $('undo-toast-text').textContent = label;
+  toast.classList.remove('hide');
+  const timeoutId = setTimeout(() => {
+    onCommit();
+    pendingRemoval = null;
+    toast.classList.add('hide');
+  }, 8000);
+  pendingRemoval = { onUndo, onCommit, timeoutId };
+}
+
+function undoDelete(){
+  if (!pendingRemoval) return;
+  clearTimeout(pendingRemoval.timeoutId);
+  pendingRemoval.onUndo();
+  pendingRemoval = null;
+  $('undo-toast').classList.add('hide');
+}
 const TITLES = {suivi:'Suivi', ajouter:'Nouvelle entrée', agenda:'Agenda', historique:'Historique', stats:'Statistiques', reglages:'Réglages'};
 const TABS = ['suivi','ajouter','agenda','historique','stats','reglages'];
 
@@ -468,6 +664,7 @@ let calls = [], primes = [];
 let objectifs = {};
 let offers = {};
 let weeklyObjectifs = {};
+let prospectTags = {};
 let tab = 'suivi', filter = 'tous', mode = 'call', statusFilter = 'tous';
 let callClientId = null, callResult = null, primeClientId = null;
 let currentProspectKey = null;
@@ -493,6 +690,13 @@ function inCurrentWeek(iso){
   const d = new Date(iso + 'T00:00:00');
   const start = startOfWeek(new Date());
   const end = new Date(start); end.setDate(end.getDate() + 6); end.setHours(23,59,59,999);
+  return d >= start && d <= end;
+}
+function inLastWeek(iso){
+  const d = new Date(iso + 'T00:00:00');
+  const curStart = startOfWeek(new Date());
+  const start = new Date(curStart); start.setDate(start.getDate() - 7);
+  const end = new Date(curStart); end.setMilliseconds(-1);
   return d >= start && d <= end;
 }
 
@@ -574,6 +778,21 @@ function setCallClient(id){
   callClientId = id;
   [...$('call-client-row').children].forEach(b => b.classList.toggle('on', b.dataset.cid === id));
   updateOfferField();
+  checkDuplicateProspect();
+}
+
+function checkDuplicateProspect(){
+  const el = $('duplicate-warning');
+  if (!el) return;
+  const name = $('prospect').value.trim().toLowerCase();
+  if (!name || !callClientId) { el.classList.add('hide'); return; }
+  const matches = calls.filter(c => c.clientId === callClientId && String(c.prospect || '').trim().toLowerCase() === name);
+  if (matches.length > 0) {
+    el.textContent = `⚠️ ${matches.length} call(s) déjà enregistré(s) pour ce prospect avec cet infopreneur.`;
+    el.classList.remove('hide');
+  } else {
+    el.classList.add('hide');
+  }
 }
 
 function setPrimeClient(id){
@@ -644,6 +863,8 @@ function viewSuivis(){
 }
 
 function render(){
+  checkExportReminder();
+  checkSuiviReminder();
   const cs = scoped(calls), ps = scoped(primes);
   const closedCalls = cs.filter(c => c.result === 'closed');
   const heldCalls = cs.filter(c => c.result !== 'noshow');
@@ -694,6 +915,8 @@ function render(){
       ? 'Objectif hebdo atteint.'
       : 'Il te reste ' + euros(objectifWeek - totalWeek) + ' cette semaine (lundi à dimanche).');
 
+  renderWeeklyDigest(cs, ps);
+
   let detail;
   if (objectif === 0) {
     detail = 'Définis un objectif pour cet infopreneur dans Réglages.';
@@ -710,10 +933,24 @@ function render(){
   } else {
     detail = 'Ajoute des calls closés avec leur commission pour suivre ta progression.';
   }
+  if (objectif > 0 && remaining > 0) {
+    const now = new Date();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const daysLeft = Math.max(1, daysInMonth - now.getDate() + 1);
+    const perDay = Math.ceil(remaining / daysLeft);
+    detail += ' Objectif du jour : ' + euros(perDay) + '/jour sur les ' + daysLeft + ' jours restants du mois.';
+  }
   $('detail').textContent = detail;
 
-  const csForList = statusFilter === 'tous' ? cs : cs.filter(c => c.result === statusFilter);
-  const psForList = statusFilter === 'tous' ? ps : [];
+  const csForList0 = statusFilter === 'tous' ? cs : cs.filter(c => c.result === statusFilter);
+  const psForList0 = statusFilter === 'tous' ? ps : [];
+  const searchQ = ($('historique-search') ? $('historique-search').value : '').trim().toLowerCase();
+  const csForList = searchQ ? csForList0.filter(c =>
+    String(c.prospect || '').toLowerCase().includes(searchQ) ||
+    String(c.offerName || '').toLowerCase().includes(searchQ) ||
+    String(c.notes || '').toLowerCase().includes(searchQ)
+  ) : csForList0;
+  const psForList = searchQ ? psForList0.filter(p => String(p.label || '').toLowerCase().includes(searchQ)) : psForList0;
 
   const items = csForList.map(c => ({
     id: c.id, type: 'call', date: c.date, name: esc(c.prospect), client: clientName(c.clientId),
@@ -755,6 +992,38 @@ function render(){
       </div>`).join('');
 }
 
+function renderWeeklyDigest(cs, ps){
+  const el = $('weekly-digest');
+  if (!el) return;
+  const thisWeekCalls = cs.filter(c => inCurrentWeek(c.date));
+  const lastWeekCalls = cs.filter(c => inLastWeek(c.date));
+  const thisWeekClosed = thisWeekCalls.filter(c => c.result === 'closed');
+  const lastWeekClosed = lastWeekCalls.filter(c => c.result === 'closed');
+  const thisWeekNoshow = thisWeekCalls.filter(c => c.result === 'noshow').length;
+  const thisWeekRevenue = thisWeekClosed.reduce((a,c) => a + (c.commission || 0), 0)
+    + ps.filter(p => inCurrentWeek(p.date)).reduce((a,p) => a + (p.montant || 0), 0);
+  const lastWeekRevenue = lastWeekClosed.reduce((a,c) => a + (c.commission || 0), 0)
+    + ps.filter(p => inLastWeek(p.date)).reduce((a,p) => a + (p.montant || 0), 0);
+
+  const callsDelta = thisWeekCalls.length - lastWeekCalls.length;
+  const closedDelta = thisWeekClosed.length - lastWeekClosed.length;
+  const deltaLabel = (n) => n === 0 ? '' : (n > 0 ? ` <span class="delta up">+${n}</span>` : ` <span class="delta down">${n}</span>`);
+
+  el.innerHTML = `
+    <div class="col"><span class="k">Calls cette semaine</span><span class="v" style="color:#16181b">${thisWeekCalls.length}${deltaLabel(callsDelta)}</span></div>
+    <div class="sep"></div>
+    <div class="col"><span class="k">Closés</span><span class="v" style="color:#16181b">${thisWeekClosed.length}${deltaLabel(closedDelta)}</span></div>
+    <div class="sep"></div>
+    <div class="col"><span class="k">Revenu</span><span class="v">${euros(thisWeekRevenue)}</span></div>
+  `;
+  if (thisWeekNoshow > 0) {
+    el.innerHTML += `<div class="note" style="margin-top:10px;padding:0">${thisWeekNoshow} absent(s) cette semaine.</div>`;
+  }
+  if (lastWeekRevenue > 0 || lastWeekCalls.length > 0) {
+    el.innerHTML += `<div class="note" style="margin-top:6px;padding:0">Semaine dernière : ${euros(lastWeekRevenue)} sur ${lastWeekCalls.length} call(s).</div>`;
+  }
+}
+
 function addCall(){
   const prospect = $('prospect').value.trim();
   const amount = parseFloat($('commission').value);
@@ -772,11 +1041,14 @@ function addCall(){
     offerName: callResult === 'closed' ? selectedOfferName : null,
     suiviDate: callResult === 'suivi' ? suiviDateVal : null,
     objection: objectionVal,
-    objectionDetail: objectionVal === 'autre' ? $('objection-autre').value.trim() : ''
+    objectionDetail: objectionVal === 'autre' ? $('objection-autre').value.trim() : '',
+    notes: $('call-notes').value.trim()
   });
-  localStorage.setItem(KEYS.calls, JSON.stringify(calls));
+  persist(KEYS.calls, calls);
   $('prospect').value = ''; $('commission').value = ''; $('call-date').value = today(); $('suivi-date').value = today();
   $('objection').value = ''; $('objection-autre').value = ''; $('objection-autre-field').classList.add('hide');
+  $('call-notes').value = '';
+  $('duplicate-warning').classList.add('hide');
   selectedOfferId = null; selectedOfferName = null;
   setCallClient(null); setResult(null);
   render(); setTab('suivi');
@@ -793,22 +1065,36 @@ function addPrime(){
     id: String(Date.now()), clientId: primeClientId, label: $('prime-label').value.trim(),
     date: $('prime-date').value || today(), montant: amount
   });
-  localStorage.setItem(KEYS.primes, JSON.stringify(primes));
+  persist(KEYS.primes, primes);
   $('prime-label').value = ''; $('prime-amount').value = ''; $('prime-date').value = today();
   setPrimeClient(null);
   render(); setTab('suivi');
 }
 
 function deleteCall(id){
-  calls = calls.filter(c => c.id !== id);
-  localStorage.setItem(KEYS.calls, JSON.stringify(calls));
+  const idx = calls.findIndex(c => c.id === id);
+  if (idx === -1) return;
+  const [removed] = calls.splice(idx, 1);
+  persist(KEYS.calls, calls);
   render();
+  flashUndo('Call supprimé.', () => {
+    calls.splice(Math.min(idx, calls.length), 0, removed);
+    persist(KEYS.calls, calls);
+    render();
+  }, () => {});
 }
 
 function deletePrime(id){
-  primes = primes.filter(p => p.id !== id);
-  localStorage.setItem(KEYS.primes, JSON.stringify(primes));
+  const idx = primes.findIndex(p => p.id === id);
+  if (idx === -1) return;
+  const [removed] = primes.splice(idx, 1);
+  persist(KEYS.primes, primes);
   render();
+  flashUndo('Prime supprimée.', () => {
+    primes.splice(Math.min(idx, primes.length), 0, removed);
+    persist(KEYS.primes, primes);
+    render();
+  }, () => {});
 }
 
 function prospectKey(clientId, prospect){
@@ -834,6 +1120,53 @@ function closeProspectCard(){
   currentProspectKey = null;
 }
 
+function renderProspectTags(){
+  const el = $('pm-custom-tags');
+  if (!el || !currentProspectKey) return;
+  const tags = prospectTags[currentProspectKey] || [];
+  el.innerHTML = tags.length === 0
+    ? '<span class="note" style="padding:0">Aucun tag pour l\'instant.</span>'
+    : tags.map(t => `<span class="tag" style="display:inline-flex;align-items:center;gap:5px">${esc(t)}<span style="cursor:pointer;font-weight:700" onclick="removeProspectTag('${esc(t).replace(/'/g, "\\'")}')">✕</span></span>`).join('');
+}
+
+function addProspectTag(){
+  if (!currentProspectKey) return;
+  const input = $('pm-tag-input');
+  const val = input.value.trim();
+  if (!val) return;
+  const tags = prospectTags[currentProspectKey] || [];
+  if (!tags.some(t => t.toLowerCase() === val.toLowerCase())) {
+    tags.push(val);
+    prospectTags[currentProspectKey] = tags;
+    persist(KEYS.prospectTags, prospectTags);
+  }
+  input.value = '';
+  renderProspectTags();
+}
+
+function removeProspectTag(tag){
+  if (!currentProspectKey) return;
+  const tags = (prospectTags[currentProspectKey] || []).filter(t => t !== tag);
+  if (tags.length) prospectTags[currentProspectKey] = tags;
+  else delete prospectTags[currentProspectKey];
+  persist(KEYS.prospectTags, prospectTags);
+  renderProspectTags();
+}
+
+function duplicateProspectCall(){
+  if (!currentProspectKey) return;
+  const entries = calls.filter(c => prospectKey(c.clientId, c.prospect) === currentProspectKey)
+    .sort((a,b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id)));
+  if (!entries.length) return;
+  const latest = entries[0];
+  closeProspectCard();
+  setTab('ajouter');
+  setMode('call');
+  $('prospect').value = latest.prospect;
+  setCallClient(latest.clientId);
+  $('call-date').value = today();
+}
+
 function renderProspectCard(){
   if (!currentProspectKey) return;
   const entries = calls
@@ -855,6 +1188,7 @@ function renderProspectCard(){
     <div class="col"><span class="k">Commission générée</span><span class="v">${euros(totalComm)}</span></div>
     ${closedN > 0 ? `<div class="col"><span class="k">Ventes</span><span class="v">${closedN}</span></div>` : ''}
   `;
+  renderProspectTags();
   $('pm-timeline').innerHTML = entries.map(c => {
     const label = c.result === 'closed' ? 'Closé' : (c.result === 'noshow' ? 'Absent' : (c.result === 'suivi' ? 'Suivi prévu' : 'Perdu'));
     const cls = c.result === 'closed' ? 'closed' : (c.result === 'noshow' ? 'noshow' : (c.result === 'suivi' ? 'suivi' : 'perdu'));
@@ -867,6 +1201,7 @@ function renderProspectCard(){
     return `<div class="timeline-item">
       <div class="trow"><span class="tdate">${fmtDate(c.date)}</span><span class="status ${cls}">${label}</span></div>
       ${details.length ? '<div class="tdetail">' + details.join(' · ') + '</div>' : ''}
+      ${c.notes ? '<div class="tdetail" style="margin-top:4px;font-style:italic">' + esc(c.notes) + '</div>' : ''}
       <button class="tdel" onclick="deleteCallFromCard('${c.id}')">Supprimer ce call</button>
     </div>`;
   }).join('');
@@ -890,7 +1225,7 @@ function addClient(){
   }
   $('client-err').style.display = 'none';
   clients.push({ id: newId(), name: name });
-  localStorage.setItem(KEYS.clients, JSON.stringify(clients));
+  persist(KEYS.clients, clients);
   input.value = '';
   renderClientsSettings();
   renderFilterChips();
@@ -898,10 +1233,33 @@ function addClient(){
 }
 
 function deleteClient(id){
+  const name = clientName(id);
+  const linkedCalls = calls.filter(c => c.clientId === id).length;
+  const linkedPrimes = primes.filter(p => p.clientId === id).length;
+  let cascade = false;
+  if (linkedCalls > 0 || linkedPrimes > 0) {
+    const msg = `${name} a ${linkedCalls} call(s) et ${linkedPrimes} prime(s) enregistrés.\n\n` +
+      `OK = supprimer ${name} ET tout son historique (calls + primes).\n` +
+      `Annuler = ne rien supprimer.`;
+    if (!confirm(msg)) return;
+    cascade = true;
+  } else {
+    if (!confirm(`Supprimer ${name} ? Cette action est irréversible.`)) return;
+  }
   clients = clients.filter(c => c.id !== id);
   delete objectifs[id];
-  localStorage.setItem(KEYS.clients, JSON.stringify(clients));
-  localStorage.setItem(KEYS.objectifs, JSON.stringify(objectifs));
+  delete weeklyObjectifs[id];
+  delete offers[id];
+  if (cascade) {
+    calls = calls.filter(c => c.clientId !== id);
+    primes = primes.filter(p => p.clientId !== id);
+    persist(KEYS.calls, calls);
+    persist(KEYS.primes, primes);
+  }
+  persist(KEYS.clients, clients);
+  persist(KEYS.objectifs, objectifs);
+  persist(KEYS.weeklyObjectifs, weeklyObjectifs);
+  persist(KEYS.offers, offers);
   if (filter === id) { filter = 'tous'; $('scope').textContent = 'Tous les infopreneurs'; }
   renderClientsSettings();
   renderFilterChips();
@@ -913,7 +1271,7 @@ function saveClientObjectif(id){
   const val = parseFloat(input.value);
   if (!val || val <= 0) { input.focus(); return; }
   objectifs[id] = val;
-  localStorage.setItem(KEYS.objectifs, JSON.stringify(objectifs));
+  persist(KEYS.objectifs, objectifs);
   render();
   const msg = $('saved');
   msg.style.display = 'block';
@@ -925,7 +1283,7 @@ function saveClientWeeklyObjectif(id){
   const val = parseFloat(input.value);
   if (!val || val <= 0) { input.focus(); return; }
   weeklyObjectifs[id] = val;
-  localStorage.setItem(KEYS.weeklyObjectifs, JSON.stringify(weeklyObjectifs));
+  persist(KEYS.weeklyObjectifs, weeklyObjectifs);
   render();
   const msg = $('saved');
   msg.style.display = 'block';
@@ -960,7 +1318,7 @@ function addOffer(clientId){
 
   if (!offers[clientId]) offers[clientId] = [];
   offers[clientId].push({ id: newId(), name: name, price: price, pct: pct });
-  localStorage.setItem(KEYS.offers, JSON.stringify(offers));
+  persist(KEYS.offers, offers);
 
   nameInput.value = ''; priceInput.value = ''; pctInput.value = '';
   renderClientsSettings();
@@ -969,7 +1327,7 @@ function addOffer(clientId){
 function deleteOffer(clientId, offerId){
   if (!offers[clientId]) return;
   offers[clientId] = offers[clientId].filter(o => o.id !== offerId);
-  localStorage.setItem(KEYS.offers, JSON.stringify(offers));
+  persist(KEYS.offers, offers);
   renderClientsSettings();
 }
 
@@ -1062,8 +1420,52 @@ function monthLabel(key){
   return noms[parseInt(m,10)-1] + ' ' + y.slice(2);
 }
 
+function renderObjectifHistory(){
+  const el = $('objectif-history');
+  if (!el) return;
+  const cs = scoped(calls), ps = scoped(primes);
+  const objectif = filter === 'tous'
+    ? clients.reduce((a,c) => a + (objectifs[c.id] || 0), 0)
+    : (objectifs[filter] || 0);
+  const now = new Date();
+  const keys = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    keys.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+  }
+  const totals = {};
+  keys.forEach(k => totals[k] = 0);
+  cs.filter(c => c.result === 'closed').forEach(c => {
+    const k = monthKey(c.date);
+    if (k in totals) totals[k] += (c.commission || 0);
+  });
+  ps.forEach(p => {
+    const k = monthKey(p.date);
+    if (k in totals) totals[k] += (p.montant || 0);
+  });
+  if (objectif <= 0) {
+    el.innerHTML = '<div class="note">Définis un objectif mensuel pour voir cet historique.</div>';
+    return;
+  }
+  el.innerHTML = keys.map(k => {
+    const val = totals[k];
+    const pct = Math.min(100, Math.round(val / objectif * 100));
+    const hit = val >= objectif;
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px">
+        <span>${monthLabel(k)}</span>
+        <span style="color:${hit ? '#1c8a53' : '#5f5e58'};font-weight:600">${euros(val)} · ${pct}%</span>
+      </div>
+      <div style="background:#f1efea;border-radius:6px;height:6px;overflow:hidden">
+        <div style="background:${hit ? '#1c8a53' : '#16181b'};height:100%;width:${pct}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderCharts(){
   renderComparison();
+  renderObjectifHistory();
   const cs = scoped(calls), ps = scoped(primes);
 
   const monthTotals = {};
@@ -1303,10 +1705,66 @@ function exportData(){
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  localStorage.setItem(LAST_EXPORT_KEY, Date.now().toString());
+  checkExportReminder();
+}
+
+function csvEscape(v){
+  const s = v === null || v === undefined ? '' : String(v);
+  return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function exportCSV(){
+  const rows = [['Type','Date','Infopreneur','Prospect / Libellé','Résultat','Montant (€)','Offre','Objection','Date de suivi','Notes']];
+  calls.slice().sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(c => {
+    const statusLabel = c.result === 'closed' ? 'Closé' : (c.result === 'noshow' ? 'Absent' : (c.result === 'suivi' ? 'Suivi prévu' : 'Perdu'));
+    rows.push(['Call', c.date, clientName(c.clientId), c.prospect || '', statusLabel, c.result === 'closed' ? (c.commission || 0) : '', c.offerName || '', objectionLabel(c) || '', c.suiviDate || '', c.notes || '']);
+  });
+  primes.slice().sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(p => {
+    rows.push(['Prime', p.date, clientName(p.clientId), p.label || '', '', p.montant || 0, '', '', '', '']);
+  });
+  const csv = rows.map(r => r.map(csvEscape).join(';')).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'closing-tracker-' + today() + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  localStorage.setItem(LAST_EXPORT_KEY, Date.now().toString());
+  checkExportReminder();
 }
 
 function triggerImport(){
   $('import-file').click();
+}
+
+function applyImportedPayload(data, sourceLabel){
+  if (!data || typeof data !== 'object' || !Array.isArray(data.clients) || !Array.isArray(data.calls)) {
+    alert('Fichier invalide : structure inattendue.');
+    return false;
+  }
+  if (!confirm(`Importer ${sourceLabel} va remplacer toutes les données actuelles de l'appli (infopreneurs, calls, primes, objectifs, offres). Continuer ?`)) {
+    return false;
+  }
+  clients = data.clients || [];
+  calls = data.calls || [];
+  primes = data.primes || [];
+  objectifs = data.objectifs || {};
+  offers = data.offers || {};
+  weeklyObjectifs = data.weeklyObjectifs || {};
+  persist(KEYS.clients, clients);
+  persist(KEYS.calls, calls);
+  persist(KEYS.primes, primes);
+  persist(KEYS.objectifs, objectifs);
+  persist(KEYS.offers, offers);
+  persist(KEYS.weeklyObjectifs, weeklyObjectifs);
+  localStorage.setItem(LAST_EXPORT_KEY, Date.now().toString());
+  renderFilterChips(); renderClientsSettings(); render();
+  if (tab === 'stats') renderCharts();
+  return true;
 }
 
 function importData(input){
@@ -1320,30 +1778,9 @@ function importData(input){
       input.value = '';
       return;
     }
-    if (!data || typeof data !== 'object' || !Array.isArray(data.clients) || !Array.isArray(data.calls)) {
-      alert('Fichier invalide : structure inattendue.');
-      input.value = '';
-      return;
-    }
-    if (!confirm('Importer ce fichier va remplacer toutes les données actuelles de l\'appli (infopreneurs, calls, primes, objectifs, offres). Continuer ?')) {
-      input.value = '';
-      return;
-    }
-    clients = data.clients || [];
-    calls = data.calls || [];
-    primes = data.primes || [];
-    objectifs = data.objectifs || {};
-    offers = data.offers || {};
-    weeklyObjectifs = data.weeklyObjectifs || {};
-    localStorage.setItem(KEYS.clients, JSON.stringify(clients));
-    localStorage.setItem(KEYS.calls, JSON.stringify(calls));
-    localStorage.setItem(KEYS.primes, JSON.stringify(primes));
-    localStorage.setItem(KEYS.objectifs, JSON.stringify(objectifs));
-    localStorage.setItem(KEYS.offers, JSON.stringify(offers));
-    localStorage.setItem(KEYS.weeklyObjectifs, JSON.stringify(weeklyObjectifs));
+    const ok = applyImportedPayload(data, 'ce fichier');
     input.value = '';
-    renderFilterChips(); renderClientsSettings(); render();
-    if (tab === 'stats') renderCharts();
+    if (!ok) return;
     const msg = $('saved');
     const prevText = msg.textContent;
     msg.textContent = 'Données importées.';
@@ -1364,10 +1801,17 @@ function saveGoogleClientId(){
   const val = $('google-client-id').value.trim();
   localStorage.setItem(GOOGLE_CLIENT_ID_KEY, val);
   gisTokenClient = null; googleAccessToken = null;
+  driveTokenClient = null; driveAccessToken = null;
   updateAgendaCardVisibility();
+  updateDriveCardVisibility();
   const msg = $('saved');
   msg.style.display = 'block';
   setTimeout(() => { msg.style.display = 'none'; }, 2200);
+}
+
+function toggleDarkMode(on){
+  document.body.classList.toggle('dark', on);
+  localStorage.setItem('closing-dark-mode', on ? '1' : '0');
 }
 
 function updateAgendaCardVisibility(){
@@ -1448,6 +1892,183 @@ async function fetchAgendaEvents(isSilentRetry){
   } catch (e) {
     $('agenda-events').innerHTML = '<div class="note">Erreur de connexion à Google Agenda. Réessaie.</div>';
   }
+}
+
+// --- Google Drive backup ---
+const DRIVE_BACKUP_FILENAME = 'closing-tracker-backup.json';
+const DRIVE_LAST_BACKUP_KEY = 'closing-drive-last-backup';
+let driveTokenClient = null;
+let driveAccessToken = null;
+let driveBackupFileId = null;
+let driveAutoBackupTimer = null;
+
+function updateDriveCardVisibility(){
+  const clientId = localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
+  $('drive-not-configured').classList.toggle('hide', !!clientId);
+  $('drive-connect-btn').classList.toggle('hide', !clientId || !!driveAccessToken);
+  $('drive-connected-block').classList.toggle('hide', !driveAccessToken);
+  if (driveAccessToken) updateDriveStatusText();
+}
+
+function updateDriveStatusText(){
+  const raw = localStorage.getItem(DRIVE_LAST_BACKUP_KEY);
+  $('drive-status').textContent = raw
+    ? 'Connecté. Dernière sauvegarde Drive : ' + new Date(parseInt(raw, 10)).toLocaleString('fr-FR')
+    : 'Connecté. Aucune sauvegarde Drive pour l\'instant.';
+}
+
+function initGoogleDriveAuth(){
+  const clientId = localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
+  if (!clientId || !window.google || !window.google.accounts || !window.google.accounts.oauth2) return false;
+  driveTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    callback: (resp) => {
+      if (resp && resp.access_token) {
+        driveAccessToken = resp.access_token;
+        updateDriveCardVisibility();
+      } else {
+        $('drive-status').textContent = 'Connexion refusée ou annulée — réessaie.';
+      }
+    }
+  });
+  return true;
+}
+
+function connectGoogleDrive(){
+  if (!driveTokenClient && !initGoogleDriveAuth()) {
+    alert('Google met un instant à se charger — réessaie dans quelques secondes, ou vérifie ton identifiant OAuth dans Réglages (section Google Agenda).');
+    return;
+  }
+  driveTokenClient.requestAccessToken({ prompt: driveAccessToken ? '' : 'consent' });
+}
+
+async function driveEnsureToken(){
+  if (driveAccessToken) return true;
+  if (!driveTokenClient && !initGoogleDriveAuth()) return false;
+  return new Promise(resolve => {
+    const originalClientCallback = driveTokenClient.callback;
+    driveTokenClient.callback = (resp) => {
+      driveTokenClient.callback = originalClientCallback;
+      if (resp && resp.access_token) {
+        driveAccessToken = resp.access_token;
+        updateDriveCardVisibility();
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    };
+    driveTokenClient.requestAccessToken({ prompt: '' });
+  });
+}
+
+async function driveFindBackupFile(){
+  const q = encodeURIComponent(`name='${DRIVE_BACKUP_FILENAME}' and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,modifiedTime)`, {
+    headers: { Authorization: 'Bearer ' + driveAccessToken }
+  });
+  if (res.status === 401) { driveAccessToken = null; return null; }
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  return (data.files && data.files[0]) ? data.files[0].id : null;
+}
+
+function buildBackupPayload(){
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    clients: clients, calls: calls, primes: primes,
+    objectifs: objectifs, offers: offers, weeklyObjectifs: weeklyObjectifs
+  };
+}
+
+async function driveBackupNow(silent){
+  if (!(await driveEnsureToken())) {
+    if (!silent) alert('Connecte-toi à Google Drive dans Réglages avant de sauvegarder.');
+    return;
+  }
+  if (!silent) $('drive-status').textContent = 'Sauvegarde en cours…';
+  try {
+    if (!driveBackupFileId) driveBackupFileId = await driveFindBackupFile();
+    const payload = JSON.stringify(buildBackupPayload(), null, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    let res;
+    if (driveBackupFileId) {
+      res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveBackupFileId}?uploadType=media`, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + driveAccessToken, 'Content-Type': 'application/json' },
+        body: blob
+      });
+    } else {
+      const metadata = { name: DRIVE_BACKUP_FILENAME, mimeType: 'application/json' };
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+      form.append('file', blob);
+      res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + driveAccessToken },
+        body: form
+      });
+      if (res.ok) { const created = await res.json(); driveBackupFileId = created.id; }
+    }
+    if (res.status === 401) { driveAccessToken = null; updateDriveCardVisibility(); if (!silent) alert('Session Drive expirée, reconnecte-toi.'); return; }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    localStorage.setItem(DRIVE_LAST_BACKUP_KEY, Date.now().toString());
+    localStorage.setItem(LAST_EXPORT_KEY, Date.now().toString());
+    checkExportReminder();
+    updateDriveStatusText();
+    if (!silent) {
+      const msg = $('saved');
+      const prevText = msg.textContent;
+      msg.textContent = 'Sauvegardé sur Google Drive.';
+      msg.style.display = 'block';
+      setTimeout(() => { msg.style.display = 'none'; msg.textContent = prevText; }, 2500);
+    }
+  } catch (e) {
+    if (!silent) $('drive-status').textContent = 'Erreur pendant la sauvegarde Drive. Réessaie.';
+  }
+}
+
+async function driveRestore(){
+  if (!(await driveEnsureToken())) {
+    alert('Connecte-toi à Google Drive dans Réglages avant de restaurer.');
+    return;
+  }
+  $('drive-status').textContent = 'Recherche de la sauvegarde…';
+  try {
+    if (!driveBackupFileId) driveBackupFileId = await driveFindBackupFile();
+    if (!driveBackupFileId) {
+      $('drive-status').textContent = 'Aucune sauvegarde trouvée sur ce Drive.';
+      return;
+    }
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveBackupFileId}?alt=media`, {
+      headers: { Authorization: 'Bearer ' + driveAccessToken }
+    });
+    if (res.status === 401) { driveAccessToken = null; updateDriveCardVisibility(); alert('Session Drive expirée, reconnecte-toi.'); return; }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const ok = applyImportedPayload(data, 'la sauvegarde Google Drive');
+    updateDriveStatusText();
+    if (ok) {
+      const msg = $('saved');
+      const prevText = msg.textContent;
+      msg.textContent = 'Données restaurées depuis Drive.';
+      msg.style.display = 'block';
+      setTimeout(() => { msg.style.display = 'none'; msg.textContent = prevText; }, 2500);
+    }
+  } catch (e) {
+    $('drive-status').textContent = 'Erreur pendant la restauration. Réessaie.';
+  }
+}
+
+function toggleDriveAutoBackup(on){
+  localStorage.setItem('closing-drive-autobackup', on ? '1' : '0');
+}
+
+function scheduleDriveAutoBackup(){
+  if (localStorage.getItem('closing-drive-autobackup') !== '1' || !driveAccessToken) return;
+  if (driveAutoBackupTimer) clearTimeout(driveAutoBackupTimer);
+  driveAutoBackupTimer = setTimeout(() => { driveBackupNow(true); }, 6000);
 }
 
 function guessNameFromEvent(ev){
@@ -1531,11 +2152,16 @@ function init(){
   objectifs = read(KEYS.objectifs, {}) || {};
   offers = read(KEYS.offers, {}) || {};
   weeklyObjectifs = read(KEYS.weeklyObjectifs, {}) || {};
+  prospectTags = read(KEYS.prospectTags, {}) || {};
   $('call-date').value = today();
   $('prime-date').value = today();
   $('suivi-date').value = today();
   $('google-client-id').value = localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || '';
+  document.body.classList.toggle('dark', localStorage.getItem('closing-dark-mode') === '1');
+  $('dark-mode-toggle').checked = localStorage.getItem('closing-dark-mode') === '1';
+  $('drive-autobackup-toggle').checked = localStorage.getItem('closing-drive-autobackup') === '1';
   updateAgendaCardVisibility();
+  updateDriveCardVisibility();
   renderFilterChips();
   renderClientsSettings();
   render();
