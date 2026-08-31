@@ -218,16 +218,6 @@
         <button type="button" onclick="setMode('prime')">Une prime</button>
       </div>
 
-      <div class="card" id="quick-add-card" style="margin-top:12px">
-        <div class="cap">Depuis Google Agenda</div>
-        <div class="note hide" id="agenda-not-configured" style="margin-top:6px">Connecte d'abord un identifiant Google dans Réglages pour afficher tes prochains rendez-vous ici.</div>
-        <div id="agenda-configured" class="hide">
-          <div class="note" style="margin-top:6px" id="agenda-note">Affiche tes rendez-vous des 7 prochains jours et pré-remplit le call en un clic.</div>
-          <button type="button" class="btn ghost" style="margin-top:10px" id="agenda-connect-btn" onclick="connectGoogleCalendar()">Connecter Google Agenda</button>
-          <div id="agenda-events" style="margin-top:10px"></div>
-        </div>
-      </div>
-
       <div class="card form" id="form-call" style="margin-top:12px">
         <div class="field">
           <label>Infopreneur</label>
@@ -296,6 +286,26 @@
         <button type="button" class="btn green" onclick="addPrime()">Ajouter la prime</button>
       </div>
       <div class="note" id="prime-note" style="display:none;margin-top:10px">Les primes comptent dans le revenu total et dans la progression vers l'objectif, jamais dans le taux de closing.</div>
+    </div>
+  </section>
+
+  <!-- AGENDA -->
+  <section id="view-agenda" class="stack hide">
+    <div class="card hide" id="agenda-not-configured">
+      <div class="cap">Google Agenda</div>
+      <div class="note" style="margin-top:8px">Connecte d'abord un identifiant Google dans Réglages pour voir tes rendez-vous ici.</div>
+    </div>
+    <div class="card hide" id="agenda-connect-card">
+      <div class="cap">Google Agenda</div>
+      <div class="note" style="margin-top:6px" id="agenda-status-note">Affiche tes rendez-vous passés et à venir, et pré-remplit un call en un clic.</div>
+      <button type="button" class="btn ghost" style="margin-top:10px" id="agenda-connect-btn" onclick="connectGoogleCalendar()">Connecter Google Agenda</button>
+    </div>
+    <div class="seg hide" id="agenda-subfilter">
+      <button type="button" class="on" data-af="upcoming" onclick="setAgendaFilter('upcoming')">À venir</button>
+      <button type="button" data-af="past" onclick="setAgendaFilter('past')">Passés</button>
+    </div>
+    <div class="card hide" id="agenda-list-card">
+      <div id="agenda-events"></div>
     </div>
   </section>
 
@@ -396,6 +406,7 @@
 <nav class="tabbar">
   <button type="button" class="on" id="tab-suivi" onclick="setTab('suivi')"><span class="dot"></span>Suivi</button>
   <button type="button" id="tab-ajouter" onclick="setTab('ajouter')"><span class="dot"></span>Ajouter</button>
+  <button type="button" id="tab-agenda" onclick="setTab('agenda')"><span class="dot"></span>Agenda</button>
   <button type="button" id="tab-historique" onclick="setTab('historique')"><span class="dot"></span>Historique</button>
   <button type="button" id="tab-stats" onclick="setTab('stats')"><span class="dot"></span>Stats</button>
   <button type="button" id="tab-reglages" onclick="setTab('reglages')"><span class="dot"></span>Réglages</button>
@@ -403,8 +414,8 @@
 
 <script>
 const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1'};
-const TITLES = {suivi:'Suivi', ajouter:'Nouvelle entrée', historique:'Historique', stats:'Statistiques', reglages:'Réglages'};
-const TABS = ['suivi','ajouter','historique','stats','reglages'];
+const TITLES = {suivi:'Suivi', ajouter:'Nouvelle entrée', agenda:'Agenda', historique:'Historique', stats:'Statistiques', reglages:'Réglages'};
+const TABS = ['suivi','ajouter','agenda','historique','stats','reglages'];
 
 let clients = [];
 let calls = [], primes = [];
@@ -470,6 +481,7 @@ function setTab(t){
   if (t === 'ajouter') renderClientButtons();
   if (t === 'reglages') renderClientsSettings();
   if (t === 'stats') renderCharts();
+  if (t === 'agenda') { updateAgendaCardVisibility(); renderAgendaEvents(); }
 }
 
 function setFilter(f){
@@ -493,7 +505,6 @@ function setMode(m){
   btns[0].classList.toggle('on', m === 'call');
   btns[1].classList.toggle('on', m === 'prime');
   $('form-call').classList.toggle('hide', m !== 'call');
-  $('quick-add-card').classList.toggle('hide', m !== 'call');
   $('form-prime').classList.toggle('hide', m !== 'prime');
   $('prime-note').style.display = m === 'prime' ? 'block' : 'none';
 }
@@ -1212,7 +1223,9 @@ function importData(input){
 const GOOGLE_CLIENT_ID_KEY = 'closing-google-client-id';
 let gisTokenClient = null;
 let googleAccessToken = null;
-let agendaEvents = [];
+let upcomingAgendaEvents = [];
+let pastAgendaEvents = [];
+let agendaFilter = 'upcoming';
 
 function saveGoogleClientId(){
   const val = $('google-client-id').value.trim();
@@ -1227,7 +1240,15 @@ function saveGoogleClientId(){
 function updateAgendaCardVisibility(){
   const clientId = localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
   $('agenda-not-configured').classList.toggle('hide', !!clientId);
-  $('agenda-configured').classList.toggle('hide', !clientId);
+  $('agenda-connect-card').classList.toggle('hide', !clientId);
+  $('agenda-subfilter').classList.toggle('hide', !clientId);
+  $('agenda-list-card').classList.toggle('hide', !clientId);
+}
+
+function setAgendaFilter(f){
+  agendaFilter = f;
+  [...$('agenda-subfilter').children].forEach(b => b.classList.toggle('on', b.dataset.af === f));
+  renderAgendaEvents();
 }
 
 function initGoogleAuth(){
@@ -1240,9 +1261,9 @@ function initGoogleAuth(){
       if (resp && resp.access_token) {
         googleAccessToken = resp.access_token;
         $('agenda-connect-btn').textContent = 'Actualiser mes rendez-vous';
-        fetchUpcomingEvents();
-      } else {
-        $('agenda-events').innerHTML = '<div class="note">Connexion refusée ou annulée.</div>';
+        fetchAgendaEvents();
+      } else if ($('agenda-events')) {
+        $('agenda-events').innerHTML = '<div class="note">Connexion refusée, annulée, ou reconnexion automatique impossible — tape sur « Connecter Google Agenda ».</div>';
       }
     }
   });
@@ -1258,26 +1279,38 @@ function connectGoogleCalendar(){
   gisTokenClient.requestAccessToken({ prompt: googleAccessToken ? '' : 'consent' });
 }
 
-async function fetchUpcomingEvents(){
+async function fetchAgendaEvents(isSilentRetry){
   if (!googleAccessToken) return;
   $('agenda-events').innerHTML = '<div class="note">Chargement de tes rendez-vous…</div>';
   const now = new Date();
-  const in7d = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+  const from = new Date(now.getTime() - 14 * 24 * 3600 * 1000);
+  const to = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
   const url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
-    + '?timeMin=' + encodeURIComponent(now.toISOString())
-    + '&timeMax=' + encodeURIComponent(in7d.toISOString())
-    + '&singleEvents=true&orderBy=startTime&maxResults=20';
+    + '?timeMin=' + encodeURIComponent(from.toISOString())
+    + '&timeMax=' + encodeURIComponent(to.toISOString())
+    + '&singleEvents=true&orderBy=startTime&maxResults=100';
   try {
     const res = await fetch(url, { headers: { Authorization: 'Bearer ' + googleAccessToken } });
     if (res.status === 401) {
       googleAccessToken = null;
-      $('agenda-events').innerHTML = '<div class="note">Session Google expirée — tape sur « Actualiser » pour te reconnecter.</div>';
+      // Le jeton Google expire au bout d'1h : on retente une reconnexion silencieuse
+      // (sans fenêtre de connexion) avant de redemander un clic à l'utilisateur.
+      if (!isSilentRetry && gisTokenClient) {
+        gisTokenClient.requestAccessToken({ prompt: '' });
+        return;
+      }
+      $('agenda-events').innerHTML = '<div class="note">Session Google expirée — tape sur « Connecter Google Agenda » pour te reconnecter.</div>';
       $('agenda-connect-btn').textContent = 'Connecter Google Agenda';
       return;
     }
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    agendaEvents = (data.items || []).filter(e => e.start && e.start.dateTime);
+    const items = (data.items || []).filter(e => e.start && e.start.dateTime);
+    const nowT = Date.now();
+    upcomingAgendaEvents = items.filter(e => new Date(e.start.dateTime).getTime() >= nowT)
+      .sort((a, b) => new Date(a.start.dateTime) - new Date(b.start.dateTime));
+    pastAgendaEvents = items.filter(e => new Date(e.start.dateTime).getTime() < nowT)
+      .sort((a, b) => new Date(b.start.dateTime) - new Date(a.start.dateTime));
     renderAgendaEvents();
   } catch (e) {
     $('agenda-events').innerHTML = '<div class="note">Erreur de connexion à Google Agenda. Réessaie.</div>';
@@ -1285,7 +1318,7 @@ async function fetchUpcomingEvents(){
 }
 
 function guessNameFromEvent(ev){
-  const text = (ev.description || '') + '\n' + (ev.summary || '');
+  const text = ((ev.description || '') + '\n' + (ev.summary || '')).replace(/<[^>]+>/g, ' ');
   let m = text.match(/(?:Nom|Pr[ée]nom|Prospect|Client)\s*:?[ \t]*([A-ZÀ-Ý][a-zà-ÿ'’-]+(?:[ \t]+[A-ZÀ-Ý][a-zà-ÿ'’-]+)?)/);
   if (m) return m[1];
   m = text.match(/(?:Hello|Salut|Bonjour|Coucou)[\s,]+([A-ZÀ-Ý][a-zà-ÿ'’-]+)/);
@@ -1293,32 +1326,57 @@ function guessNameFromEvent(ev){
   return '';
 }
 
+function isEventAlreadyLogged(ev, name){
+  const dateStr = ev.start.dateTime.split('T')[0];
+  const n = (name || '').toLowerCase().trim();
+  if (!n) return false;
+  return calls.some(c => c.date === dateStr && c.prospect && (
+    c.prospect.toLowerCase().includes(n) || n.includes(c.prospect.toLowerCase())
+  ));
+}
+
 function renderAgendaEvents(){
   const list = $('agenda-events');
-  if (!agendaEvents.length) {
-    list.innerHTML = '<div class="note">Aucun rendez-vous dans les 7 prochains jours.</div>';
+  if (!list) return;
+  const events = agendaFilter === 'upcoming' ? upcomingAgendaEvents : pastAgendaEvents;
+  const emptyMsg = agendaFilter === 'upcoming'
+    ? 'Aucun rendez-vous dans les 7 prochains jours.'
+    : 'Aucun rendez-vous dans les 14 derniers jours.';
+  if (!googleAccessToken) {
+    list.innerHTML = '<div class="note">Connecte-toi pour voir tes rendez-vous.</div>';
     return;
   }
-  list.innerHTML = agendaEvents.map((e, i) => {
+  if (!events.length) {
+    list.innerHTML = '<div class="note">' + emptyMsg + '</div>';
+    return;
+  }
+  list.innerHTML = events.map((e) => {
+    const idx = agendaFilter === 'upcoming' ? upcomingAgendaEvents.indexOf(e) : pastAgendaEvents.indexOf(e);
     const d = new Date(e.start.dateTime);
     const dateLabel = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     const name = guessNameFromEvent(e) || e.summary || 'Rendez-vous';
+    const logged = agendaFilter === 'past' && isEventAlreadyLogged(e, name);
     return `<div class="client-row-item">
       <div style="min-width:0">
-        <div class="cname" style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</div>
+        <div class="name-row" style="gap:6px">
+          <span class="cname" style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</span>
+          ${logged ? '<span class="tag offer-tag">Déjà loggé</span>' : ''}
+        </div>
         <div class="cobj">${dateLabel}</div>
       </div>
-      <button type="button" class="btn ghost" style="width:auto;padding:8px 12px;flex:none" onclick="useAgendaEvent(${i})">Utiliser</button>
+      <button type="button" class="btn ghost" style="width:auto;padding:8px 12px;flex:none" onclick="useAgendaEvent('${agendaFilter}',${idx})">${agendaFilter === 'past' ? 'Catégoriser' : 'Utiliser'}</button>
     </div>`;
   }).join('');
 }
 
-function useAgendaEvent(i){
-  const e = agendaEvents[i];
+function useAgendaEvent(source, i){
+  const e = (source === 'upcoming' ? upcomingAgendaEvents : pastAgendaEvents)[i];
   if (!e) return;
   const name = guessNameFromEvent(e);
+  setMode('call');
   if (name) $('prospect').value = name;
   if (e.start && e.start.dateTime) $('call-date').value = e.start.dateTime.split('T')[0];
+  setTab('ajouter');
   if (!name) {
     alert('Prénom non détecté automatiquement dans cet événement — vérifie et complète le champ toi-même.');
   }
