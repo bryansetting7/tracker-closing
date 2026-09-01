@@ -43,7 +43,7 @@
   .scope{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:11px;color:#8a8880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
   .head h1{font-size:21px;font-weight:600;letter-spacing:-.3px;margin:7px 0 0}
   .seg{display:flex;gap:6px;background:#eeece7;border-radius:11px;padding:3px;margin-top:14px;flex-wrap:wrap}
-  .seg button{flex:1;min-width:64px;padding:8px 6px;border:none;border-radius:9px;font:600 12.5px 'Instrument Sans';cursor:pointer;background:transparent;color:#8a8880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .seg button{flex:1;min-width:64px;padding:8px 6px;border:none;border-radius:9px;font:600 12.5px 'Instrument Sans';cursor:pointer;background:transparent;color:#8a8880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:transform .08s ease}
   .seg button.on{background:#fff;color:#16181b;box-shadow:0 1px 2px rgba(0,0,0,.08)}
   main{flex:1;overflow:auto;padding:16px 20px 24px;max-width:520px;width:100%;margin:0 auto}
   .stack{display:flex;flex-direction:column;gap:12px}
@@ -51,9 +51,11 @@
   .cap{font-weight:600;font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#8a8880}
   .hero{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:40px;line-height:1;letter-spacing:-2px;margin-top:12px}
   .split{display:flex;gap:18px;margin-top:16px;padding-top:14px;border-top:1px solid #efede8}
-  .split .col{display:flex;flex-direction:column;gap:3px}
+  .split .col{display:flex;flex-direction:column;gap:3px;min-width:0}
   .split .k{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:#8a8880}
   .split .v{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:14px;color:#1c8a53}
+  .split .v.num{color:#16181b}
+  .inline-link{color:#16181b;font-weight:600;text-decoration:underline}
   .split .sep{width:1px;background:#efede8}
   .duo{display:flex;gap:12px}
   .duo .card{flex:1;padding:18px}
@@ -76,7 +78,9 @@
   .offer-tag{background:#e8f3ec;color:#146b3f}
   .form{display:flex;flex-direction:column;gap:14px}
   .row{display:flex;gap:8px;flex-wrap:wrap}
-  .row button{flex:1;min-width:72px;padding:12px 10px;border-radius:11px;font:600 13px 'Instrument Sans';cursor:pointer;border:1px solid #e0ddd6;background:#fbfaf8;color:#8a8880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row button{flex:1;min-width:72px;padding:12px 10px;border-radius:11px;font:600 13px 'Instrument Sans';cursor:pointer;border:1px solid #e0ddd6;background:#fbfaf8;color:#8a8880;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:transform .08s ease}
+  .row button:active{transform:scale(.96)}
+  .seg button:active{transform:scale(.96)}
   .row button.on{background:#16181b;border-color:#16181b;color:#fff}
   .row button.on-green{background:#e8f3ec;border-color:#1c8a53;color:#146b3f}
   .row button.on-red{background:#fbeceb;border-color:#b83a2e;color:#b83a2e}
@@ -88,6 +92,7 @@
   .btn{width:100%;padding:14px 0;border:none;border-radius:12px;background:#16181b;color:#fff;font:600 14px 'Instrument Sans';cursor:pointer}
   .btn.green{background:#1c8a53}
   .btn.ghost{background:#fbfaf8;color:#16181b;border:1px solid #e0ddd6}
+  .btn.danger{background:#fbfaf8;color:#b23b30;border:1px solid #e6c9c5}
   .btn:active{opacity:.85}
   .err{font-size:12px;line-height:1.5;color:#b83a2e;background:#fbeceb;border-radius:10px;padding:10px 12px;display:none}
   .ok{font-weight:500;font-size:12.5px;color:#1c8a53;background:#e8f3ec;border-radius:11px;padding:11px 13px;display:none}
@@ -108,6 +113,11 @@
   .item .name-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;row-gap:5px}
   .item .name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tag{font-weight:600;font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;padding:3px 7px;border-radius:99px;background:#f1efea;color:#6c6a64;white-space:nowrap}
+  .cmp-row{display:grid;grid-template-columns:1.5fr .9fr .6fr .6fr;gap:6px;padding:9px 4px;font-size:12.5px;align-items:center;border-bottom:1px solid #f1efea}
+  .cmp-row:last-child{border-bottom:none}
+  .cmp-head{font-weight:700;font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:#8a8880}
+  .cmp-row .name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:5px}
+  .cmp-row .best{color:#1c8a53;font-weight:700}
   .meta{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8a8880}
   .meta .amt{font-weight:500;color:#1c8a53}
   .r{display:flex;align-items:center;gap:4px;flex:none}
@@ -121,10 +131,13 @@
   .delta.up{color:#1c8a53}
   .delta.down{color:#b83a2e}
   .del{border:none;background:none;color:#b3b0a8;font-size:15px;cursor:pointer;padding:4px 2px}
-  .empty{text-align:center;padding:34px 0;font-size:13px;color:#a8a59e}
+  .empty{text-align:center;padding:30px 16px;font-size:13px;color:#a8a59e;border:1px dashed #e6e3dd;border-radius:14px}
   .tabbar{display:flex;border-top:1px solid #e6e3dd;background:#fbfaf8;padding:8px 8px calc(8px + env(safe-area-inset-bottom));position:sticky;bottom:0}
-  .tabbar button{flex:1;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;padding:6px 0;font:600 11px 'Instrument Sans';color:#a8a59e}
+  .tabbar button{position:relative;flex:1;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;padding:6px 0;font:600 11px 'Instrument Sans';color:#a8a59e}
   .tabbar .dot{width:16px;height:3px;border-radius:99px;background:transparent}
+  .tab-badge{position:absolute;top:2px;right:14px;min-width:15px;height:15px;padding:0 4px;border-radius:99px;background:#7183c2;color:#fff;font:700 9.5px 'Instrument Sans';display:flex;align-items:center;justify-content:center;line-height:1}
+  .tab-badge.overdue{background:#d6544a}
+  .tab-badge.hide{display:none}
   .tabbar button.on{color:#16181b}
   .tabbar button.on .dot{background:#1c8a53}
   .hide{display:none!important}
@@ -136,7 +149,8 @@
   .inline-edit input{padding:8px 10px;font-size:13px}
   .inline-edit button{padding:8px 12px;border-radius:9px;border:1px solid #e0ddd6;background:#fbfaf8;font:600 12px 'Instrument Sans';cursor:pointer;white-space:nowrap}
   .chart-wrap{position:relative;height:240px;margin-top:14px}
-  .chart-empty{text-align:center;padding:40px 0;font-size:13px;color:#a8a59e}
+  .chart-empty{text-align:center;padding:36px 16px;font-size:13px;line-height:1.5;color:#a8a59e;border:1px dashed #e6e3dd;border-radius:14px;margin-top:14px}
+  .chart-empty .t{display:block;font-weight:600;font-size:13.5px;color:#5f5e58;margin-bottom:4px}
   #print-meta{display:none}
   .modal-overlay{position:fixed;inset:0;background:rgba(22,24,27,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50}
   .modal-card{background:#fff;border-radius:22px 22px 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:22px 20px calc(22px + env(safe-area-inset-bottom))}
@@ -154,6 +168,13 @@
   .timeline-item .tdate{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8a8880}
   .timeline-item .tdetail{font-size:12px;color:#5f5e58;margin-top:7px;line-height:1.55}
   .timeline-item .tdel{border:none;background:none;color:#b3b0a8;font-size:11px;cursor:pointer;padding:7px 0 0;font-weight:600}
+  .obj-hist-row{margin-bottom:10px}
+  .obj-hist-top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px}
+  .obj-hist-val{color:#5f5e58;font-weight:600}
+  .obj-hist-val.hit{color:#1c8a53}
+  .obj-hist-track{background:#f1efea;border-radius:6px;height:6px;overflow:hidden}
+  .obj-hist-fill{background:#16181b;height:100%}
+  .obj-hist-fill.hit{background:#1c8a53}
   @media (min-width:860px){
     .modal-overlay{align-items:center;padding:24px}
     .modal-card{border-radius:18px;max-height:80vh}
@@ -196,14 +217,25 @@
   body.dark input:focus,body.dark select:focus,body.dark textarea:focus{border-color:#eceae4}
   body.dark .row button{background:#212227;border-color:#33343a;color:#8d8b86}
   body.dark .row button.on{background:#eceae4;border-color:#eceae4;color:#15161a}
+  body.dark .row button.on-green{background:#16291f;border-color:#2f9d63;color:#5fcf94}
+  body.dark .row button.on-red{background:#2b1917;border-color:#d6544a;color:#ec8078}
+  body.dark .row button.on-gray{background:#26272c;border-color:#8d8b86;color:#c7c5bf}
+  body.dark .row button.on-blue{background:#1a1d2c;border-color:#7183c2;color:#a3b1e0}
   body.dark .btn{background:#eceae4;color:#15161a}
   body.dark .btn.ghost{background:#212227;color:#eceae4;border-color:#33343a}
+  body.dark .btn.danger{background:#212227;color:#ec8078;border-color:#4a2622}
   body.dark .item{border-color:#2a2b30}
   body.dark .item.clickable:hover{background:#212227}
   body.dark .tag{background:#2a2b30;color:#b3b1ab}
+  body.dark .cmp-row{border-color:#2a2b30}
+  body.dark .cmp-head{color:#8d8b86}
+  body.dark .cmp-row .best{color:#5fcf94}
+  body.dark .split .v.num{color:#eceae4}
+  body.dark .inline-link{color:#eceae4}
   body.dark .meta{color:#8d8b86}
   body.dark .del,body.dark .tdel{color:#6d6b66}
-  body.dark .empty,body.dark .chart-empty{color:#6d6b66}
+  body.dark .empty,body.dark .chart-empty{color:#6d6b66;border-color:#2a2b30}
+  body.dark .chart-empty .t{color:#b3b1ab}
   body.dark .tabbar{background:#1c1d22;border-color:#2a2b30}
   body.dark .tabbar button{color:#6d6b66}
   body.dark .tabbar button.on{color:#eceae4}
@@ -215,6 +247,18 @@
   body.dark .timeline-item{border-color:#2a2b30}
   body.dark .timeline-item .tdate{color:#8d8b86}
   body.dark .timeline-item .tdetail{color:#b3b1ab}
+  body.dark .obj-hist-val{color:#8d8b86}
+  body.dark .obj-hist-val.hit{color:#5fcf94}
+  body.dark .obj-hist-track{background:#2a2b30}
+  body.dark .obj-hist-fill{background:#eceae4}
+  body.dark .obj-hist-fill.hit{background:#1c8a53}
+  body.dark .status.closed,body.dark .offer-tag,body.dark .ok{background:#16291f;color:#5fcf94}
+  body.dark .status.perdu,body.dark .save-fail,body.dark .err{background:#2b1917;color:#ec8078}
+  body.dark .status.prime{background:#2a2b30;color:#b3b1ab}
+  body.dark .status.noshow,body.dark .obj-tag{background:#2b2010;color:#e0a542}
+  body.dark .status.suivi{background:#1a1d2c;color:#a3b1e0}
+  body.dark .warn-banner{background:#2b2010;border-color:#4a3a17;color:#e0a542}
+  body.dark .warn-banner button{background:#e0a542;color:#15161a}
   @media (min-width:860px){
     body.dark .tabbar{background:#1c1d22}
     body.dark .tabbar button.on{background:#2a2b30}
@@ -257,13 +301,13 @@
         <div class="cap">Taux de closing</div>
         <div class="big" id="rate">0%</div>
         <div class="sub" id="rate-sub">0 closés / 0 tenus</div>
-        <div class="sub hide" id="view-suivi-link" style="margin-top:8px"><a href="javascript:void(0)" onclick="viewSuivis()" style="color:#16181b;font-weight:600;text-decoration:underline">Voir les suivis prévus →</a></div>
+        <div class="sub hide" id="view-suivi-link" style="margin-top:8px"><a href="javascript:void(0)" onclick="viewSuivis()" class="inline-link">Voir les suivis prévus →</a></div>
       </div>
       <div class="card">
         <div class="cap">Taux de présence</div>
         <div class="big" id="showrate">0%</div>
         <div class="sub" id="showrate-sub">0 tenus / 0 programmés</div>
-        <div class="sub hide" id="view-noshow-link" style="margin-top:8px"><a href="javascript:void(0)" onclick="viewNoShows()" style="color:#16181b;font-weight:600;text-decoration:underline">Voir les absents →</a></div>
+        <div class="sub hide" id="view-noshow-link" style="margin-top:8px"><a href="javascript:void(0)" onclick="viewNoShows()" class="inline-link">Voir les absents →</a></div>
       </div>
     </div>
     <div class="card">
@@ -288,6 +332,21 @@
       <div class="cap">Résumé de la semaine</div>
       <div class="split" style="margin-top:6px;padding-top:0;border-top:none" id="weekly-digest"></div>
     </div>
+    <div class="card hide" id="motiv-card">
+      <div class="cap">Motivation</div>
+      <div class="split" style="margin-top:6px;padding-top:0;border-top:none">
+        <div class="col">
+          <span class="k">Série en cours</span>
+          <span class="v num" id="motiv-streak">0 jour</span>
+        </div>
+        <div class="sep"></div>
+        <div class="col">
+          <span class="k">Meilleur mois</span>
+          <span class="v" id="motiv-best">—</span>
+        </div>
+      </div>
+      <div class="note hide" id="motiv-note" style="margin-top:8px"></div>
+    </div>
   </section>
 
   <!-- AJOUTER -->
@@ -310,8 +369,9 @@
         </div>
         <div class="field">
           <label for="prospect">Nom du prospect</label>
-          <input type="text" id="prospect" placeholder="Nom du prospect" oninput="checkDuplicateProspect()">
+          <input type="text" id="prospect" placeholder="Nom du prospect" oninput="checkDuplicateProspect()" autocomplete="off">
           <div class="note hide" id="duplicate-warning" style="margin-top:2px"></div>
+          <div class="modal-tags hide" id="prospect-suggestions" style="margin-top:2px"></div>
         </div>
         <div class="field">
           <label for="call-date">Date du call</label>
@@ -433,8 +493,8 @@
         </div>
         <div class="sep"></div>
         <div class="col">
-          <span class="k">Taux de closing</span>
-          <span class="v" id="cmp-rate-cur" style="color:#16181b">0%</span>
+          <span class="k">Taux closing</span>
+          <span class="v" id="cmp-rate-cur">0%</span>
           <span class="sub" id="cmp-rate-delta">—</span>
         </div>
       </div>
@@ -442,7 +502,7 @@
     <div class="card">
       <div class="cap">Revenu par mois</div>
       <div class="chart-wrap"><canvas id="chart-revenu"></canvas></div>
-      <div class="chart-empty hide" id="chart-revenu-empty">Pas encore assez de données pour un graphique.</div>
+      <div class="chart-empty hide" id="chart-revenu-empty"><span class="t">Pas encore de revenu</span>Ajoute des calls closés pour voir ton évolution mensuelle.</div>
     </div>
     <div class="card">
       <div class="cap">Historique des objectifs (6 derniers mois)</div>
@@ -452,17 +512,21 @@
     <div class="card">
       <div class="cap">Ventes par offre</div>
       <div class="chart-wrap"><canvas id="chart-offres"></canvas></div>
-      <div class="chart-empty hide" id="chart-offres-empty">Ajoute des offres dans Réglages et close des calls pour voir ce graphique.</div>
+      <div class="chart-empty hide" id="chart-offres-empty"><span class="t">Aucune vente enregistrée</span>Configure des offres dans Réglages et close des calls pour voir ce graphique.</div>
     </div>
     <div class="card">
       <div class="cap">Objections les plus fréquentes</div>
       <div class="chart-wrap"><canvas id="chart-objections"></canvas></div>
-      <div class="chart-empty hide" id="chart-objections-empty">Ajoute des objections sur tes calls pour voir apparaître ce graphique.</div>
+      <div class="chart-empty hide" id="chart-objections-empty"><span class="t">Aucune objection notée</span>Ajoute des objections sur tes calls pour repérer les tendances.</div>
     </div>
     <div class="card">
       <div class="cap">Taux de closing par infopreneur</div>
       <div class="chart-wrap"><canvas id="chart-taux"></canvas></div>
-      <div class="chart-empty hide" id="chart-taux-empty">Ajoute des infopreneurs et des calls pour voir ce graphique.</div>
+      <div class="chart-empty hide" id="chart-taux-empty"><span class="t">Pas encore de taux à afficher</span>Ajoute des infopreneurs et des calls pour voir ce graphique.</div>
+    </div>
+    <div class="card hide" id="comparatif-card">
+      <div class="cap">Comparatif entre infopreneurs</div>
+      <div id="comparatif-table" style="margin-top:8px"></div>
     </div>
   </section>
 
@@ -534,7 +598,7 @@
 </main>
 
 <nav class="tabbar">
-  <button type="button" class="on" id="tab-suivi" onclick="setTab('suivi')"><span class="dot"></span>Suivi</button>
+  <button type="button" class="on" id="tab-suivi" onclick="setTab('suivi')"><span class="dot"></span>Suivi<span class="tab-badge hide" id="suivi-badge"></span></button>
   <button type="button" id="tab-ajouter" onclick="setTab('ajouter')"><span class="dot"></span>Ajouter</button>
   <button type="button" id="tab-agenda" onclick="setTab('agenda')"><span class="dot"></span>Agenda</button>
   <button type="button" id="tab-historique" onclick="setTab('historique')"><span class="dot"></span>Historique</button>
@@ -562,7 +626,19 @@
         </div>
       </div>
     </div>
+    <div style="margin-top:14px">
+      <div class="field" style="gap:6px">
+        <label>Contact (optionnel)</label>
+        <div class="note hide" id="pm-contact-display" style="padding:0"></div>
+        <div style="display:flex;gap:8px;margin-top:2px">
+          <input type="tel" id="pm-phone-input" placeholder="Téléphone" style="flex:1;min-width:0">
+          <input type="email" id="pm-email-input" placeholder="Email" style="flex:1;min-width:0">
+        </div>
+        <button type="button" class="btn ghost" style="margin-top:6px" onclick="saveProspectContact()">Enregistrer le contact</button>
+      </div>
+    </div>
     <button type="button" class="btn ghost" style="margin-top:14px" onclick="duplicateProspectCall()">Dupliquer un call pour ce prospect</button>
+    <button type="button" class="btn danger" style="margin-top:8px" onclick="deleteProspect()">Supprimer ce prospect</button>
     <div class="timeline" id="pm-timeline" style="margin-top:14px"></div>
   </div>
 </div>
@@ -573,7 +649,7 @@
 </div>
 
 <script>
-const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1', prospectTags:'closing-prospect-tags-v1'};
+const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1', prospectTags:'closing-prospect-tags-v1', prospectInfo:'closing-prospect-info-v1'};
 const LAST_EXPORT_KEY = 'closing-last-export';
 const EXPORT_REMINDER_DAYS = 7;
 
@@ -621,15 +697,25 @@ function checkExportReminder(){
 
 function checkSuiviReminder(){
   const banner = $('suivi-reminder');
+  const badge = $('suivi-badge');
   if (!banner) return;
   const todayIso = today();
   const due = calls.filter(c => c.result === 'suivi' && c.suiviDate && c.suiviDate <= todayIso);
-  if (due.length === 0) { banner.style.display = 'none'; return; }
+  if (due.length === 0) {
+    banner.style.display = 'none';
+    if (badge) badge.classList.add('hide');
+    return;
+  }
   const overdue = due.filter(c => c.suiviDate < todayIso).length;
   $('suivi-reminder-text').textContent = overdue > 0
     ? `${due.length} suivi(s) à relancer, dont ${overdue} en retard.`
     : `${due.length} suivi(s) prévu(s) aujourd'hui à relancer.`;
   banner.style.display = 'flex';
+  if (badge) {
+    badge.textContent = due.length;
+    badge.classList.remove('hide');
+    badge.classList.toggle('overdue', overdue > 0);
+  }
 }
 
 let pendingRemoval = null;
@@ -666,6 +752,7 @@ let objectifs = {};
 let offers = {};
 let weeklyObjectifs = {};
 let prospectTags = {};
+let prospectInfo = {};
 let tab = 'suivi', filter = 'tous', mode = 'call', statusFilter = 'tous';
 let callClientId = null, callResult = null, primeClientId = null;
 let currentProspectKey = null;
@@ -782,11 +869,32 @@ function setCallClient(id){
   checkDuplicateProspect();
 }
 
+function levenshtein(a, b){
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  let prev = Array.from({length: n + 1}, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = a[i-1] === b[j-1] ? prev[j-1] : 1 + Math.min(prev[j-1], prev[j], cur[j-1]);
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
 function checkDuplicateProspect(){
   const el = $('duplicate-warning');
+  const sugg = $('prospect-suggestions');
   if (!el) return;
-  const name = $('prospect').value.trim().toLowerCase();
-  if (!name || !callClientId) { el.classList.add('hide'); return; }
+  const raw = $('prospect').value.trim();
+  const name = raw.toLowerCase();
+  if (!name || !callClientId) {
+    el.classList.add('hide');
+    if (sugg) { sugg.classList.add('hide'); sugg.innerHTML = ''; }
+    return;
+  }
   const matches = calls.filter(c => c.clientId === callClientId && String(c.prospect || '').trim().toLowerCase() === name);
   if (matches.length > 0) {
     el.textContent = `⚠️ ${matches.length} call(s) déjà enregistré(s) pour ce prospect avec cet infopreneur.`;
@@ -794,6 +902,37 @@ function checkDuplicateProspect(){
   } else {
     el.classList.add('hide');
   }
+  if (sugg) {
+    if (matches.length > 0 || name.length < 3) {
+      sugg.classList.add('hide');
+      sugg.innerHTML = '';
+    } else {
+      const seen = new Map();
+      calls.filter(c => c.clientId === callClientId).forEach(c => {
+        const p = String(c.prospect || '').trim();
+        if (p) seen.set(p.toLowerCase(), p);
+      });
+      const near = [...seen.entries()]
+        .filter(([lower]) => lower !== name)
+        .map(([lower, original]) => ({ original, dist: levenshtein(name, lower) }))
+        .filter(x => x.dist > 0 && x.dist <= Math.min(2, Math.ceil(name.length * 0.3)))
+        .sort((a, b) => a.dist - b.dist)
+        .slice(0, 3);
+      if (near.length) {
+        sugg.innerHTML = '<span class="note" style="padding:0;width:100%">Tu voulais peut-être dire :</span>' +
+          near.map(x => `<span class="tag" style="cursor:pointer" onclick="useSuggestedProspect('${esc(x.original).replace(/'/g, "\\'")}')">${esc(x.original)}</span>`).join('');
+        sugg.classList.remove('hide');
+      } else {
+        sugg.classList.add('hide');
+        sugg.innerHTML = '';
+      }
+    }
+  }
+}
+
+function useSuggestedProspect(name){
+  $('prospect').value = name;
+  checkDuplicateProspect();
 }
 
 function setPrimeClient(id){
@@ -917,6 +1056,7 @@ function render(){
       : 'Il te reste ' + euros(objectifWeek - totalWeek) + ' cette semaine (lundi à dimanche).');
 
   renderWeeklyDigest(cs, ps);
+  renderMotivation(cs, ps);
 
   let detail;
   if (objectif === 0) {
@@ -1011,9 +1151,9 @@ function renderWeeklyDigest(cs, ps){
   const deltaLabel = (n) => n === 0 ? '' : (n > 0 ? ` <span class="delta up">+${n}</span>` : ` <span class="delta down">${n}</span>`);
 
   el.innerHTML = `
-    <div class="col"><span class="k">Calls cette semaine</span><span class="v" style="color:#16181b">${thisWeekCalls.length}${deltaLabel(callsDelta)}</span></div>
+    <div class="col"><span class="k">Calls cette semaine</span><span class="v num">${thisWeekCalls.length}${deltaLabel(callsDelta)}</span></div>
     <div class="sep"></div>
-    <div class="col"><span class="k">Closés</span><span class="v" style="color:#16181b">${thisWeekClosed.length}${deltaLabel(closedDelta)}</span></div>
+    <div class="col"><span class="k">Closés</span><span class="v num">${thisWeekClosed.length}${deltaLabel(closedDelta)}</span></div>
     <div class="sep"></div>
     <div class="col"><span class="k">Revenu</span><span class="v">${euros(thisWeekRevenue)}</span></div>
   `;
@@ -1022,6 +1162,47 @@ function renderWeeklyDigest(cs, ps){
   }
   if (lastWeekRevenue > 0 || lastWeekCalls.length > 0) {
     el.innerHTML += `<div class="note" style="margin-top:6px;padding:0">Semaine dernière : ${euros(lastWeekRevenue)} sur ${lastWeekCalls.length} call(s).</div>`;
+  }
+}
+
+function renderMotivation(cs, ps){
+  const card = $('motiv-card');
+  if (!card) return;
+  if (cs.length === 0) { card.classList.add('hide'); return; }
+  card.classList.remove('hide');
+
+  const days = new Set(cs.map(c => c.date));
+  const isoOf = d => d.toISOString().split('T')[0];
+  let cursor = new Date();
+  if (!days.has(isoOf(cursor))) cursor.setDate(cursor.getDate() - 1);
+  let streak = 0;
+  while (days.has(isoOf(cursor))) { streak++; cursor.setDate(cursor.getDate() - 1); }
+  $('motiv-streak').textContent = streak + (streak > 1 ? ' jours' : ' jour');
+
+  const monthTotals = {};
+  cs.filter(c => c.result === 'closed').forEach(c => {
+    const k = String(c.date).slice(0,7);
+    monthTotals[k] = (monthTotals[k] || 0) + (c.commission || 0);
+  });
+  ps.forEach(p => {
+    const k = String(p.date).slice(0,7);
+    monthTotals[k] = (monthTotals[k] || 0) + (p.montant || 0);
+  });
+  const monthKeys = Object.keys(monthTotals);
+  const noteEl = $('motiv-note');
+  if (monthKeys.length === 0) {
+    $('motiv-best').textContent = '—';
+    noteEl.classList.add('hide');
+  } else {
+    const bestKey = monthKeys.reduce((a,b) => monthTotals[b] > monthTotals[a] ? b : a);
+    $('motiv-best').textContent = monthLabel(bestKey) + ' · ' + euros(monthTotals[bestKey]);
+    const curKey = today().slice(0,7);
+    if (curKey === bestKey && monthTotals[curKey] > 0 && monthKeys.length > 1) {
+      noteEl.textContent = '🏆 Ce mois-ci est ton meilleur mois jusqu\'à présent !';
+      noteEl.classList.remove('hide');
+    } else {
+      noteEl.classList.add('hide');
+    }
   }
 }
 
@@ -1154,6 +1335,56 @@ function removeProspectTag(tag){
   renderProspectTags();
 }
 
+function saveProspectContact(){
+  if (!currentProspectKey) return;
+  const phone = $('pm-phone-input').value.trim();
+  const email = $('pm-email-input').value.trim();
+  if (phone || email) prospectInfo[currentProspectKey] = { phone, email };
+  else delete prospectInfo[currentProspectKey];
+  persist(KEYS.prospectInfo, prospectInfo);
+  renderProspectContact();
+}
+
+function renderProspectContact(){
+  if (!currentProspectKey) return;
+  const info = prospectInfo[currentProspectKey] || {};
+  $('pm-phone-input').value = info.phone || '';
+  $('pm-email-input').value = info.email || '';
+  const el = $('pm-contact-display');
+  const parts = [];
+  if (info.phone) parts.push(`<a href="tel:${esc(info.phone)}">${esc(info.phone)}</a>`);
+  if (info.email) parts.push(`<a href="mailto:${esc(info.email)}">${esc(info.email)}</a>`);
+  if (parts.length) { el.innerHTML = parts.join(' · '); el.classList.remove('hide'); }
+  else { el.innerHTML = ''; el.classList.add('hide'); }
+}
+
+function deleteProspect(){
+  if (!currentProspectKey) return;
+  const key = currentProspectKey;
+  const name = $('pm-name').textContent;
+  const entries = calls.filter(c => prospectKey(c.clientId, c.prospect) === key);
+  if (!confirm(`Supprimer ${name} ? ${entries.length} call(s) enregistré(s) pour ce prospect seront supprimés. Cette action n'affecte pas ton Agenda Google (données séparées, en lecture seule).`)) return;
+  const removedTags = prospectTags[key];
+  const removedInfo = prospectInfo[key];
+  calls = calls.filter(c => prospectKey(c.clientId, c.prospect) !== key);
+  delete prospectTags[key];
+  delete prospectInfo[key];
+  persist(KEYS.calls, calls);
+  persist(KEYS.prospectTags, prospectTags);
+  persist(KEYS.prospectInfo, prospectInfo);
+  closeProspectCard();
+  render();
+  flashUndo(`${name} supprimé.`, () => {
+    calls = calls.concat(entries);
+    if (removedTags) prospectTags[key] = removedTags;
+    if (removedInfo) prospectInfo[key] = removedInfo;
+    persist(KEYS.calls, calls);
+    persist(KEYS.prospectTags, prospectTags);
+    persist(KEYS.prospectInfo, prospectInfo);
+    render();
+  }, () => {});
+}
+
 function duplicateProspectCall(){
   if (!currentProspectKey) return;
   const entries = calls.filter(c => prospectKey(c.clientId, c.prospect) === currentProspectKey)
@@ -1190,6 +1421,7 @@ function renderProspectCard(){
     ${closedN > 0 ? `<div class="col"><span class="k">Ventes</span><span class="v">${closedN}</span></div>` : ''}
   `;
   renderProspectTags();
+  renderProspectContact();
   $('pm-timeline').innerHTML = entries.map(c => {
     const label = c.result === 'closed' ? 'Closé' : (c.result === 'noshow' ? 'Absent' : (c.result === 'suivi' ? 'Suivi prévu' : 'Perdu'));
     const cls = c.result === 'closed' ? 'closed' : (c.result === 'noshow' ? 'noshow' : (c.result === 'suivi' ? 'suivi' : 'perdu'));
@@ -1452,21 +1684,56 @@ function renderObjectifHistory(){
     const val = totals[k];
     const pct = Math.min(100, Math.round(val / objectif * 100));
     const hit = val >= objectif;
-    return `<div style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px">
+    return `<div class="obj-hist-row">
+      <div class="obj-hist-top">
         <span>${monthLabel(k)}</span>
-        <span style="color:${hit ? '#1c8a53' : '#5f5e58'};font-weight:600">${euros(val)} · ${pct}%</span>
+        <span class="obj-hist-val${hit ? ' hit' : ''}">${euros(val)} · ${pct}%</span>
       </div>
-      <div style="background:#f1efea;border-radius:6px;height:6px;overflow:hidden">
-        <div style="background:${hit ? '#1c8a53' : '#16181b'};height:100%;width:${pct}%"></div>
+      <div class="obj-hist-track">
+        <div class="obj-hist-fill${hit ? ' hit' : ''}" style="width:${pct}%"></div>
       </div>
     </div>`;
   }).join('');
 }
 
+function chartColors(){
+  const dark = document.body.classList.contains('dark');
+  return dark
+    ? { grid: '#2a2b30', border: '#33343a', tick: '#8d8b86', label: '#eceae4', tauxBar: '#eceae4', tauxBarHover: '#c7c5bf' }
+    : { grid: '#f2f0eb', border: '#e0ddd6', tick: '#5f5e58', label: '#16181b', tauxBar: '#16181b', tauxBarHover: '#2b2e33' };
+}
+
+function renderComparatifTable(){
+  const card = $('comparatif-card');
+  const el = $('comparatif-table');
+  if (!card || !el) return;
+  const rows = clients.map(c => {
+    const clientCalls = calls.filter(x => x.clientId === c.id);
+    const concluded = clientCalls.filter(x => x.result !== 'noshow' && x.result !== 'suivi');
+    const closedN = concluded.filter(x => x.result === 'closed').length;
+    const rate = concluded.length ? Math.round(closedN / concluded.length * 100) : 0;
+    const ca = clientCalls.filter(x => x.result === 'closed').reduce((a,x) => a + (x.commission || 0), 0)
+      + primes.filter(p => p.clientId === c.id).reduce((a,p) => a + (p.montant || 0), 0);
+    return { name: c.name, ca, rate, count: clientCalls.length };
+  }).filter(r => r.count > 0 || r.ca > 0);
+
+  if (rows.length < 2) { card.classList.add('hide'); return; }
+  card.classList.remove('hide');
+  rows.sort((a,b) => b.ca - a.ca);
+  const topCa = rows[0].ca;
+  el.innerHTML = `<div class="cmp-row cmp-head"><span>Infopreneur</span><span>CA</span><span>Taux</span><span>Calls</span></div>` +
+    rows.map(r => `<div class="cmp-row">
+      <span class="name">${r.ca === topCa && topCa > 0 ? '<span class="best">★</span> ' : ''}${esc(r.name)}</span>
+      <span>${euros(r.ca)}</span>
+      <span>${r.rate}%</span>
+      <span>${r.count}</span>
+    </div>`).join('');
+}
+
 function renderCharts(){
   renderComparison();
   renderObjectifHistory();
+  const cc = chartColors();
   const cs = scoped(calls), ps = scoped(primes);
 
   const monthTotals = {};
@@ -1483,10 +1750,10 @@ function renderCharts(){
   if (chartRevenu) chartRevenu.destroy();
   if (monthKeys.length === 0) {
     $('chart-revenu-empty').classList.remove('hide');
-    $('chart-revenu').classList.add('hide');
+    $('chart-revenu').parentElement.classList.add('hide');
   } else {
     $('chart-revenu-empty').classList.add('hide');
-    $('chart-revenu').classList.remove('hide');
+    $('chart-revenu').parentElement.classList.remove('hide');
     chartRevenu = new Chart($('chart-revenu').getContext('2d'), {
       type: 'bar',
       data: {
@@ -1509,11 +1776,11 @@ function renderCharts(){
           tooltip: Object.assign({}, TOOLTIP_STYLE, { callbacks: { title: () => '', label: ctx => euros(ctx.raw) } })
         },
         scales: {
-          y: { beginAtZero: true, grace: '15%', ticks: { maxTicksLimit: 5, callback: v => euros(v), font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#f2f0eb' }, border: { display: false } },
-          x: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: '#e0ddd6' } }
+          y: { beginAtZero: true, grace: '15%', ticks: { maxTicksLimit: 5, callback: v => euros(v), color: cc.tick, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: cc.grid }, border: { display: false } },
+          x: { ticks: { color: cc.tick, font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: cc.border } }
         }
       },
-      plugins: [ makeValueLabelPlugin(monthKeys.map(k => monthTotals[k]), euros, '#16181b') ]
+      plugins: [ makeValueLabelPlugin(monthKeys.map(k => monthTotals[k]), euros, cc.label) ]
     });
   }
 
@@ -1527,10 +1794,10 @@ function renderCharts(){
   if (chartOffres) chartOffres.destroy();
   if (offerKeys.length === 0) {
     $('chart-offres-empty').classList.remove('hide');
-    $('chart-offres').classList.add('hide');
+    $('chart-offres').parentElement.classList.add('hide');
   } else {
     $('chart-offres-empty').classList.add('hide');
-    $('chart-offres').classList.remove('hide');
+    $('chart-offres').parentElement.classList.remove('hide');
     chartOffres = new Chart($('chart-offres').getContext('2d'), {
       type: 'bar',
       data: {
@@ -1554,11 +1821,11 @@ function renderCharts(){
           tooltip: Object.assign({}, TOOLTIP_STYLE, { callbacks: { title: () => '', label: ctx => ctx.raw + (ctx.raw > 1 ? ' ventes' : ' vente') } })
         },
         scales: {
-          x: { beginAtZero: true, grace: '15%', ticks: { stepSize: 1, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#f2f0eb' }, border: { display: false } },
-          y: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: '#e0ddd6' } }
+          x: { beginAtZero: true, grace: '15%', ticks: { stepSize: 1, color: cc.tick, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: cc.grid }, border: { display: false } },
+          y: { ticks: { color: cc.tick, font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: cc.border } }
         }
       },
-      plugins: [ makeValueLabelPlugin(offerKeys.map(k => offerCounts[k]), v => String(v), '#16181b') ]
+      plugins: [ makeValueLabelPlugin(offerKeys.map(k => offerCounts[k]), v => String(v), cc.label) ]
     });
   }
 
@@ -1573,10 +1840,10 @@ function renderCharts(){
   if (chartObjections) chartObjections.destroy();
   if (objKeys.length === 0) {
     $('chart-objections-empty').classList.remove('hide');
-    $('chart-objections').classList.add('hide');
+    $('chart-objections').parentElement.classList.add('hide');
   } else {
     $('chart-objections-empty').classList.add('hide');
-    $('chart-objections').classList.remove('hide');
+    $('chart-objections').parentElement.classList.remove('hide');
     chartObjections = new Chart($('chart-objections').getContext('2d'), {
       type: 'bar',
       data: {
@@ -1600,13 +1867,15 @@ function renderCharts(){
           tooltip: Object.assign({}, TOOLTIP_STYLE, { callbacks: { title: () => '', label: ctx => ctx.raw + ' fois' } })
         },
         scales: {
-          x: { beginAtZero: true, grace: '15%', ticks: { stepSize: 1, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#f2f0eb' }, border: { display: false } },
-          y: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: '#e0ddd6' } }
+          x: { beginAtZero: true, grace: '15%', ticks: { stepSize: 1, color: cc.tick, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: cc.grid }, border: { display: false } },
+          y: { ticks: { color: cc.tick, font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: cc.border } }
         }
       },
-      plugins: [ makeValueLabelPlugin(objKeys.map(k => objectionCounts[k]), v => String(v), '#16181b') ]
+      plugins: [ makeValueLabelPlugin(objKeys.map(k => objectionCounts[k]), v => String(v), cc.label) ]
     });
   }
+
+  renderComparatifTable();
 
   const tauxData = clients.map(c => {
     const clientCalls = calls.filter(x => x.clientId === c.id && x.result !== 'noshow' && x.result !== 'suivi');
@@ -1618,18 +1887,18 @@ function renderCharts(){
   if (chartTaux) chartTaux.destroy();
   if (tauxData.length === 0) {
     $('chart-taux-empty').classList.remove('hide');
-    $('chart-taux').classList.add('hide');
+    $('chart-taux').parentElement.classList.add('hide');
   } else {
     $('chart-taux-empty').classList.add('hide');
-    $('chart-taux').classList.remove('hide');
+    $('chart-taux').parentElement.classList.remove('hide');
     chartTaux = new Chart($('chart-taux').getContext('2d'), {
       type: 'bar',
       data: {
         labels: tauxData.map(d => d.name),
         datasets: [{
           data: tauxData.map(d => d.rate),
-          backgroundColor: '#16181b',
-          hoverBackgroundColor: '#2b2e33',
+          backgroundColor: cc.tauxBar,
+          hoverBackgroundColor: cc.tauxBarHover,
           borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
           borderSkipped: false,
           barPercentage: 0.5,
@@ -1644,11 +1913,11 @@ function renderCharts(){
           tooltip: Object.assign({}, TOOLTIP_STYLE, { callbacks: { title: () => '', label: ctx => ctx.raw + '%' } })
         },
         scales: {
-          y: { beginAtZero: true, max: 100, ticks: { maxTicksLimit: 5, callback: v => v + '%', font: { family: 'Instrument Sans', size: 10 } }, grid: { color: '#f2f0eb' }, border: { display: false } },
-          x: { ticks: { font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: '#e0ddd6' } }
+          y: { beginAtZero: true, max: 100, ticks: { maxTicksLimit: 5, callback: v => v + '%', color: cc.tick, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: cc.grid }, border: { display: false } },
+          x: { ticks: { color: cc.tick, font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: cc.border } }
         }
       },
-      plugins: [ makeValueLabelPlugin(tauxData.map(d => d.rate), v => v + '%', '#16181b') ]
+      plugins: [ makeValueLabelPlugin(tauxData.map(d => d.rate), v => v + '%', cc.label) ]
     });
   }
 }
@@ -1813,6 +2082,7 @@ function saveGoogleClientId(){
 function toggleDarkMode(on){
   document.body.classList.toggle('dark', on);
   localStorage.setItem('closing-dark-mode', on ? '1' : '0');
+  if (tab === 'stats') renderCharts();
 }
 
 function updateAgendaCardVisibility(){
@@ -2154,6 +2424,7 @@ function init(){
   offers = read(KEYS.offers, {}) || {};
   weeklyObjectifs = read(KEYS.weeklyObjectifs, {}) || {};
   prospectTags = read(KEYS.prospectTags, {}) || {};
+  prospectInfo = read(KEYS.prospectInfo, {}) || {};
   $('call-date').value = today();
   $('prime-date').value = today();
   $('suivi-date').value = today();
