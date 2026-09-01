@@ -649,7 +649,7 @@
 </div>
 
 <script>
-const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1', prospectTags:'closing-prospect-tags-v1', prospectInfo:'closing-prospect-info-v1'};
+const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1', prospectTags:'closing-prospect-tags-v1', prospectInfo:'closing-prospect-info-v1', dismissedAgendaEvents:'closing-agenda-dismissed-v1'};
 const LAST_EXPORT_KEY = 'closing-last-export';
 const EXPORT_REMINDER_DAYS = 7;
 
@@ -2066,6 +2066,7 @@ let googleAccessToken = null;
 let upcomingAgendaEvents = [];
 let pastAgendaEvents = [];
 let agendaFilter = 'upcoming';
+let dismissedAgendaEvents = [];
 
 function saveGoogleClientId(){
   const val = $('google-client-id').value.trim();
@@ -2153,7 +2154,11 @@ async function fetchAgendaEvents(isSilentRetry){
     }
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    const items = (data.items || []).filter(e => e.start && e.start.dateTime);
+    const rawItems = data.items || [];
+    const stillInRange = new Set(rawItems.map(e => e.id));
+    dismissedAgendaEvents = dismissedAgendaEvents.filter(id => stillInRange.has(id));
+    persist(KEYS.dismissedAgendaEvents, dismissedAgendaEvents);
+    const items = rawItems.filter(e => e.start && e.start.dateTime && !dismissedAgendaEvents.includes(e.id));
     const nowT = Date.now();
     upcomingAgendaEvents = items.filter(e => new Date(e.start.dateTime).getTime() >= nowT)
       .sort((a, b) => new Date(a.start.dateTime) - new Date(b.start.dateTime));
@@ -2389,9 +2394,24 @@ function renderAgendaEvents(){
         </div>
         <div class="cobj">${dateLabel}</div>
       </div>
-      <button type="button" class="btn ghost" style="width:auto;padding:8px 12px;flex:none" onclick="useAgendaEvent('${agendaFilter}',${idx})">${agendaFilter === 'past' ? 'Catégoriser' : 'Utiliser'}</button>
+      <div style="display:flex;gap:6px;align-items:center;flex:none">
+        <button type="button" class="btn ghost" style="width:auto;padding:8px 12px;flex:none" onclick="useAgendaEvent('${agendaFilter}',${idx})">${agendaFilter === 'past' ? 'Catégoriser' : 'Utiliser'}</button>
+        <button type="button" class="del" aria-label="Supprimer de la liste" title="Retire ce rendez-vous de cette liste (n'affecte pas ton Google Agenda)" onclick="dismissAgendaEvent('${agendaFilter}',${idx})">✕</button>
+      </div>
     </div>`;
   }).join('');
+}
+
+function dismissAgendaEvent(source, i){
+  const arr = source === 'upcoming' ? upcomingAgendaEvents : pastAgendaEvents;
+  const e = arr[i];
+  if (!e) return;
+  if (e.id && !dismissedAgendaEvents.includes(e.id)) {
+    dismissedAgendaEvents.push(e.id);
+    persist(KEYS.dismissedAgendaEvents, dismissedAgendaEvents);
+  }
+  arr.splice(i, 1);
+  renderAgendaEvents();
 }
 
 function useAgendaEvent(source, i){
@@ -2425,6 +2445,7 @@ function init(){
   weeklyObjectifs = read(KEYS.weeklyObjectifs, {}) || {};
   prospectTags = read(KEYS.prospectTags, {}) || {};
   prospectInfo = read(KEYS.prospectInfo, {}) || {};
+  dismissedAgendaEvents = read(KEYS.dismissedAgendaEvents, []) || [];
   $('call-date').value = today();
   $('prime-date').value = today();
   $('suivi-date').value = today();
