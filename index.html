@@ -113,6 +113,10 @@
   .item .name-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;row-gap:5px}
   .item .name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tag{font-weight:600;font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;padding:3px 7px;border-radius:99px;background:#f1efea;color:#6c6a64;white-space:nowrap}
+  .cap-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .drag-handle{cursor:grab;color:#c3c2b7;font-size:17px;line-height:1;padding:3px 7px;touch-action:none;user-select:none;flex:none;border-radius:6px}
+  .drag-handle:hover{background:#f1efea}
+  .card.dragging{opacity:.45}
   .cmp-row{display:grid;grid-template-columns:1.5fr .9fr .6fr .6fr;gap:6px;padding:9px 4px;font-size:12.5px;align-items:center;border-bottom:1px solid #f1efea}
   .cmp-row:last-child{border-bottom:none}
   .cmp-head{font-weight:700;font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:#8a8880}
@@ -227,6 +231,8 @@
   body.dark .item{border-color:#2a2b30}
   body.dark .item.clickable:hover{background:#212227}
   body.dark .tag{background:#2a2b30;color:#b3b1ab}
+  body.dark .drag-handle{color:#4a4b52}
+  body.dark .drag-handle:hover{background:#2a2b30}
   body.dark .cmp-row{border-color:#2a2b30}
   body.dark .cmp-head{color:#8d8b86}
   body.dark .cmp-row .best{color:#5fcf94}
@@ -500,8 +506,8 @@
   <section id="view-stats" class="stack grid2 hide">
     <div id="print-meta"></div>
     <button type="button" class="btn ghost" id="export-pdf-btn" onclick="exportPdf()">Exporter en PDF</button>
-    <div class="card">
-      <div class="cap">Ce mois vs mois dernier</div>
+    <div class="card" data-card-id="cmp">
+      <div class="cap-row"><div class="cap">Ce mois vs mois dernier</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
       <div class="split" style="margin-top:6px;padding-top:0;border-top:none">
         <div class="col">
           <span class="k">CA ce mois</span>
@@ -516,33 +522,33 @@
         </div>
       </div>
     </div>
-    <div class="card">
-      <div class="cap">Revenu par mois</div>
+    <div class="card" data-card-id="revenu">
+      <div class="cap-row"><div class="cap">Revenu par mois</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
       <div class="chart-wrap"><canvas id="chart-revenu"></canvas></div>
       <div class="chart-empty hide" id="chart-revenu-empty"><span class="t">Pas encore de revenu</span>Ajoute des calls closés pour voir ton évolution mensuelle.</div>
     </div>
-    <div class="card">
-      <div class="cap">Historique des objectifs (6 derniers mois)</div>
+    <div class="card" data-card-id="objectifs">
+      <div class="cap-row"><div class="cap">Historique des objectifs (6 derniers mois)</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
       <div class="note" style="margin-top:4px">Comparé à l'objectif mensuel actuel de la sélection.</div>
       <div id="objectif-history" style="margin-top:10px"></div>
     </div>
-    <div class="card">
-      <div class="cap">Ventes par offre</div>
+    <div class="card" data-card-id="offres">
+      <div class="cap-row"><div class="cap">Ventes par offre</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
       <div class="chart-wrap"><canvas id="chart-offres"></canvas></div>
       <div class="chart-empty hide" id="chart-offres-empty"><span class="t">Aucune vente enregistrée</span>Configure des offres dans Réglages et close des calls pour voir ce graphique.</div>
     </div>
-    <div class="card">
-      <div class="cap">Objections les plus fréquentes</div>
+    <div class="card" data-card-id="objections">
+      <div class="cap-row"><div class="cap">Objections les plus fréquentes</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
       <div class="chart-wrap"><canvas id="chart-objections"></canvas></div>
       <div class="chart-empty hide" id="chart-objections-empty"><span class="t">Aucune objection notée</span>Ajoute des objections sur tes calls pour repérer les tendances.</div>
     </div>
-    <div class="card">
-      <div class="cap">Taux de closing par infopreneur</div>
+    <div class="card" data-card-id="taux">
+      <div class="cap-row"><div class="cap">Taux de closing par infopreneur</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
       <div class="chart-wrap"><canvas id="chart-taux"></canvas></div>
       <div class="chart-empty hide" id="chart-taux-empty"><span class="t">Pas encore de taux à afficher</span>Ajoute des infopreneurs et des calls pour voir ce graphique.</div>
     </div>
-    <div class="card hide" id="comparatif-card">
-      <div class="cap">Comparatif entre infopreneurs</div>
+    <div class="card hide" id="comparatif-card" data-card-id="comparatif">
+      <div class="cap-row"><div class="cap">Comparatif entre infopreneurs</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
       <div id="comparatif-table" style="margin-top:8px"></div>
     </div>
   </section>
@@ -607,6 +613,7 @@
         <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode(this.checked)">
         Mode sombre
       </label>
+      <button type="button" class="btn ghost" style="margin-top:12px" onclick="resetStatsCardOrder()">Réinitialiser l'ordre des cartes Stats</button>
     </div>
 
     <div class="ok" id="saved">Mis à jour.</div>
@@ -666,7 +673,7 @@
 </div>
 
 <script>
-const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1', prospectTags:'closing-prospect-tags-v1', prospectInfo:'closing-prospect-info-v1', dismissedAgendaEvents:'closing-agenda-dismissed-v1'};
+const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1', prospectTags:'closing-prospect-tags-v1', prospectInfo:'closing-prospect-info-v1', dismissedAgendaEvents:'closing-agenda-dismissed-v1', statsCardOrder:'closing-stats-order-v1'};
 const LAST_EXPORT_KEY = 'closing-last-export';
 const EXPORT_REMINDER_DAYS = 7;
 
@@ -773,6 +780,7 @@ let prospectInfo = {};
 let tab = 'suivi', filter = 'tous', mode = 'call', statusFilter = 'tous';
 let callClientId = null, callResult = null, primeClientId = null;
 let editingCallId = null;
+let statsCardOrder = [], statsDefaultOrder = [];
 let currentProspectKey = null;
 let selectedOfferId = null, selectedOfferName = null;
 
@@ -1810,6 +1818,67 @@ function renderComparatifTable(){
     </div>`).join('');
 }
 
+function applyStatsCardOrder(){
+  const list = statsCardOrder.length ? statsCardOrder : statsDefaultOrder;
+  const container = $('view-stats');
+  if (!container || !list.length) return;
+  const cards = [...container.querySelectorAll('.card[data-card-id]')];
+  const byId = new Map(cards.map(c => [c.dataset.cardId, c]));
+  list.forEach(id => { const el = byId.get(id); if (el) container.appendChild(el); });
+}
+
+function saveStatsCardOrder(){
+  const container = $('view-stats');
+  if (!container) return;
+  statsCardOrder = [...container.querySelectorAll('.card[data-card-id]')].map(c => c.dataset.cardId);
+  persist(KEYS.statsCardOrder, statsCardOrder);
+}
+
+function resetStatsCardOrder(){
+  statsCardOrder = [];
+  persist(KEYS.statsCardOrder, statsCardOrder);
+  applyStatsCardOrder();
+}
+
+function initStatsReorder(){
+  const container = $('view-stats');
+  if (!container) return;
+  let dragEl = null;
+
+  container.addEventListener('pointerdown', e => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    const card = handle.closest('.card[data-card-id]');
+    if (!card) return;
+    e.preventDefault();
+    dragEl = card;
+    card.classList.add('dragging');
+    try { handle.setPointerCapture(e.pointerId); } catch(err) {}
+  });
+
+  container.addEventListener('pointermove', e => {
+    if (!dragEl) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const target = el && el.closest('.card[data-card-id]');
+    if (!target || target === dragEl) return;
+    const cards = [...container.children];
+    const dragIdx = cards.indexOf(dragEl);
+    const targetIdx = cards.indexOf(target);
+    if (dragIdx === -1 || targetIdx === -1) return;
+    if (dragIdx < targetIdx) container.insertBefore(dragEl, target.nextSibling);
+    else container.insertBefore(dragEl, target);
+  });
+
+  const endDrag = () => {
+    if (!dragEl) return;
+    dragEl.classList.remove('dragging');
+    dragEl = null;
+    saveStatsCardOrder();
+  };
+  container.addEventListener('pointerup', endDrag);
+  container.addEventListener('pointercancel', endDrag);
+}
+
 function renderCharts(){
   renderComparison();
   renderObjectifHistory();
@@ -2000,6 +2069,7 @@ function renderCharts(){
       plugins: [ makeValueLabelPlugin(tauxData.map(d => d.rate), v => v + '%', cc.label) ]
     });
   }
+  applyStatsCardOrder();
 }
 
 function renderComparison(){
@@ -2587,6 +2657,9 @@ function init(){
   prospectTags = read(KEYS.prospectTags, {}) || {};
   prospectInfo = read(KEYS.prospectInfo, {}) || {};
   dismissedAgendaEvents = read(KEYS.dismissedAgendaEvents, []) || [];
+  statsDefaultOrder = [...document.querySelectorAll('#view-stats .card[data-card-id]')].map(c => c.dataset.cardId);
+  statsCardOrder = read(KEYS.statsCardOrder, []) || [];
+  initStatsReorder();
   $('call-date').value = today();
   $('prime-date').value = today();
   $('suivi-date').value = today();
