@@ -114,9 +114,12 @@
   .item .name{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tag{font-weight:600;font-size:9.5px;letter-spacing:.7px;text-transform:uppercase;padding:3px 7px;border-radius:99px;background:#f1efea;color:#6c6a64;white-space:nowrap}
   .cap-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  .drag-handle{cursor:grab;color:#c3c2b7;font-size:17px;line-height:1;padding:3px 7px;touch-action:none;user-select:none;flex:none;border-radius:6px}
+  .drag-handle{position:relative;cursor:grab;color:#a5a399;font-size:19px;line-height:1;padding:9px 12px;margin:-9px -12px;touch-action:none;user-select:none;flex:none;border-radius:8px}
+  .drag-handle::before{content:'';position:absolute;inset:-8px}
   .drag-handle:hover{background:#f1efea}
-  .card.dragging{opacity:.45}
+  .card[data-card-id]{touch-action:pan-y}
+  .card.dragging{position:fixed;z-index:30;cursor:grabbing;box-shadow:0 16px 32px rgba(0,0,0,.2);pointer-events:none;margin:0}
+  .card-placeholder{border:2px dashed #d8d5cd;border-radius:18px;background:#fbfaf8}
   .cmp-row{display:grid;grid-template-columns:1.5fr .9fr .6fr .6fr;gap:6px;padding:9px 4px;font-size:12.5px;align-items:center;border-bottom:1px solid #f1efea}
   .cmp-row:last-child{border-bottom:none}
   .cmp-head{font-weight:700;font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:#8a8880}
@@ -231,8 +234,10 @@
   body.dark .item{border-color:#2a2b30}
   body.dark .item.clickable:hover{background:#212227}
   body.dark .tag{background:#2a2b30;color:#b3b1ab}
-  body.dark .drag-handle{color:#4a4b52}
+  body.dark .drag-handle{color:#68666e}
   body.dark .drag-handle:hover{background:#2a2b30}
+  body.dark .card.dragging{box-shadow:0 16px 32px rgba(0,0,0,.5)}
+  body.dark .card-placeholder{border-color:#3a3b42;background:#1c1d21}
   body.dark .cmp-row{border-color:#2a2b30}
   body.dark .cmp-head{color:#8d8b86}
   body.dark .cmp-row .best{color:#5fcf94}
@@ -1843,36 +1848,55 @@ function resetStatsCardOrder(){
 function initStatsReorder(){
   const container = $('view-stats');
   if (!container) return;
-  let dragEl = null;
+  let dragEl = null, placeholder = null, offsetX = 0, offsetY = 0, activePointerId = null;
 
   container.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
     const handle = e.target.closest('.drag-handle');
     if (!handle) return;
     const card = handle.closest('.card[data-card-id]');
     if (!card) return;
     e.preventDefault();
+    const rect = card.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    activePointerId = e.pointerId;
     dragEl = card;
+
+    placeholder = document.createElement('div');
+    placeholder.className = 'card-placeholder';
+    placeholder.style.height = rect.height + 'px';
+    card.after(placeholder);
+
+    card.style.width = rect.width + 'px';
+    card.style.left = rect.left + 'px';
+    card.style.top = rect.top + 'px';
     card.classList.add('dragging');
     try { handle.setPointerCapture(e.pointerId); } catch(err) {}
   });
 
-  container.addEventListener('pointermove', e => {
-    if (!dragEl) return;
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const target = el && el.closest('.card[data-card-id]');
-    if (!target || target === dragEl) return;
-    const cards = [...container.children];
-    const dragIdx = cards.indexOf(dragEl);
-    const targetIdx = cards.indexOf(target);
-    if (dragIdx === -1 || targetIdx === -1) return;
-    if (dragIdx < targetIdx) container.insertBefore(dragEl, target.nextSibling);
-    else container.insertBefore(dragEl, target);
-  });
+  const handleMove = e => {
+    if (!dragEl || e.pointerId !== activePointerId) return;
+    e.preventDefault();
+    dragEl.style.left = (e.clientX - offsetX) + 'px';
+    dragEl.style.top = (e.clientY - offsetY) + 'px';
 
-  const endDrag = () => {
-    if (!dragEl) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const target = el && el.closest('.card[data-card-id], .card-placeholder');
+    if (!target || target === placeholder) return;
+    const targetRect = target.getBoundingClientRect();
+    const before = e.clientY < targetRect.top + targetRect.height / 2;
+    container.insertBefore(placeholder, before ? target : target.nextSibling);
+  };
+  container.addEventListener('pointermove', handleMove);
+
+  const endDrag = e => {
+    if (!dragEl || (activePointerId !== null && e.pointerId !== activePointerId)) return;
+    container.insertBefore(dragEl, placeholder);
+    placeholder.remove();
     dragEl.classList.remove('dragging');
-    dragEl = null;
+    dragEl.style.position = dragEl.style.left = dragEl.style.top = dragEl.style.width = '';
+    dragEl = null; placeholder = null; activePointerId = null;
     saveStatsCardOrder();
   };
   container.addEventListener('pointerup', endDrag);
