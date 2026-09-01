@@ -372,6 +372,10 @@
         <button type="button" onclick="setMode('prime')">Une prime</button>
       </div>
 
+      <div class="warn-banner" id="edit-call-banner" style="background:#eaecf5;border-color:#c7cdec;color:#3c4870;margin-top:12px">
+        <span>Modification d'un call existant.</span>
+        <button type="button" style="background:#3c4870" onclick="cancelEditCall()">Annuler</button>
+      </div>
       <div class="card form" id="form-call" style="margin-top:12px">
         <div class="field">
           <label>Infopreneur</label>
@@ -430,7 +434,7 @@
           <textarea id="call-notes" placeholder="Contexte, ce qui a marché ou pas, prochaine étape..."></textarea>
         </div>
         <div class="err" id="call-err">Renseigne l'infopreneur, le nom, le résultat, la commission si le call est closé, et la date de suivi si un suivi est prévu.</div>
-        <button type="button" class="btn" onclick="addCall()">Ajouter le call</button>
+        <button type="button" class="btn" id="call-submit-btn" onclick="addCall()">Ajouter le call</button>
       </div>
 
       <div class="card form hide" id="form-prime" style="margin-top:12px">
@@ -768,6 +772,7 @@ let prospectTags = {};
 let prospectInfo = {};
 let tab = 'suivi', filter = 'tous', mode = 'call', statusFilter = 'tous';
 let callClientId = null, callResult = null, primeClientId = null;
+let editingCallId = null;
 let currentProspectKey = null;
 let selectedOfferId = null, selectedOfferName = null;
 
@@ -909,7 +914,7 @@ function checkDuplicateProspect(){
     if (sugg) { sugg.classList.add('hide'); sugg.innerHTML = ''; }
     return;
   }
-  const matches = calls.filter(c => c.clientId === callClientId && String(c.prospect || '').trim().toLowerCase() === name);
+  const matches = calls.filter(c => c.id !== editingCallId && c.clientId === callClientId && String(c.prospect || '').trim().toLowerCase() === name);
   if (matches.length > 0) {
     el.textContent = `⚠️ ${matches.length} call(s) déjà enregistré(s) pour ce prospect avec cet infopreneur.`;
     el.classList.remove('hide');
@@ -1232,8 +1237,8 @@ function addCall(){
   }
   $('call-err').style.display = 'none';
   const objectionVal = $('objection').value;
-  calls.push({
-    id: String(Date.now()), clientId: callClientId, prospect: prospect,
+  const payload = {
+    clientId: callClientId, prospect: prospect,
     date: $('call-date').value || today(), result: callResult,
     commission: callResult === 'closed' ? amount : 0,
     offerName: callResult === 'closed' ? selectedOfferName : null,
@@ -1242,7 +1247,16 @@ function addCall(){
     objection: objectionVal,
     objectionDetail: objectionVal === 'autre' ? $('objection-autre').value.trim() : '',
     notes: $('call-notes').value.trim()
-  });
+  };
+  if (editingCallId) {
+    const idx = calls.findIndex(c => c.id === editingCallId);
+    if (idx !== -1) calls[idx] = Object.assign({}, calls[idx], payload);
+    editingCallId = null;
+    $('edit-call-banner').style.display = 'none';
+    $('call-submit-btn').textContent = 'Ajouter le call';
+  } else {
+    calls.push(Object.assign({ id: String(Date.now()) }, payload));
+  }
   persist(KEYS.calls, calls);
   $('prospect').value = ''; $('commission').value = ''; $('call-date').value = today(); $('suivi-date').value = today(); $('suivi-time').value = '';
   $('objection').value = ''; $('objection-autre').value = ''; $('objection-autre-field').classList.add('hide');
@@ -1251,6 +1265,47 @@ function addCall(){
   selectedOfferId = null; selectedOfferName = null;
   setCallClient(null); setResult(null);
   render(); setTab('suivi');
+}
+
+function editCall(id){
+  const c = calls.find(x => x.id === id);
+  if (!c) return;
+  editingCallId = id;
+  closeProspectCard();
+  setTab('ajouter');
+  setMode('call');
+  setCallClient(c.clientId);
+  $('prospect').value = c.prospect || '';
+  $('call-date').value = c.date || today();
+  setResult(c.result);
+  if (c.result === 'closed') {
+    $('commission').value = c.commission || '';
+    const off = c.offerName ? (offers[c.clientId] || []).find(o => o.name === c.offerName) : null;
+    if (off) selectOffer(c.clientId, off.id);
+  }
+  if (c.result === 'suivi') {
+    $('suivi-date').value = c.suiviDate || today();
+    $('suivi-time').value = c.suiviTime || '';
+  }
+  $('objection').value = c.objection || '';
+  onObjectionChange();
+  if (c.objection === 'autre') $('objection-autre').value = c.objectionDetail || '';
+  $('call-notes').value = c.notes || '';
+  checkDuplicateProspect();
+  $('edit-call-banner').style.display = 'flex';
+  $('call-submit-btn').textContent = 'Enregistrer les modifications';
+}
+
+function cancelEditCall(){
+  editingCallId = null;
+  $('edit-call-banner').style.display = 'none';
+  $('call-submit-btn').textContent = 'Ajouter le call';
+  $('prospect').value = ''; $('commission').value = ''; $('call-date').value = today(); $('suivi-date').value = today(); $('suivi-time').value = '';
+  $('objection').value = ''; $('objection-autre').value = ''; $('objection-autre-field').classList.add('hide');
+  $('call-notes').value = '';
+  $('duplicate-warning').classList.add('hide');
+  selectedOfferId = null; selectedOfferName = null;
+  setCallClient(null); setResult(null);
 }
 
 function addPrime(){
@@ -1452,12 +1507,20 @@ function renderProspectCard(){
       <div class="trow"><span class="tdate">${fmtDate(c.date)}</span><span class="status ${cls}">${label}</span></div>
       ${details.length ? '<div class="tdetail">' + details.join(' · ') + '</div>' : ''}
       ${c.notes ? '<div class="tdetail" style="margin-top:4px;font-style:italic">' + esc(c.notes) + '</div>' : ''}
-      <button class="tdel" onclick="deleteCallFromCard('${c.id}')">Supprimer ce call</button>
+      <div style="display:flex;gap:12px;margin-top:7px">
+        <button class="tdel" onclick="editCall('${c.id}')">Modifier</button>
+        <button class="tdel" onclick="deleteCallFromCard('${c.id}')">Supprimer ce call</button>
+      </div>
     </div>`;
   }).join('');
 }
 
 function deleteCallFromCard(id){
+  if (!currentProspectKey) return;
+  const entries = calls.filter(c => prospectKey(c.clientId, c.prospect) === currentProspectKey);
+  if (entries.length <= 1) {
+    if (!confirm("C'est le dernier call de ce prospect — le supprimer fermera aussi sa fiche (tu pourras cliquer sur « Annuler » juste après si c'est une erreur). Continuer ?")) return;
+  }
   deleteCall(id);
   renderProspectCard();
 }
