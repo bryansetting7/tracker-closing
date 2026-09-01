@@ -1849,6 +1849,36 @@ function initStatsReorder(){
   const container = $('view-stats');
   if (!container) return;
   let dragEl = null, placeholder = null, offsetX = 0, offsetY = 0, activePointerId = null;
+  let lastX = 0, lastY = 0, rafId = null;
+
+  function scrollHost(){
+    const main = document.querySelector('main');
+    return main && getComputedStyle(main).overflowY === 'auto' ? main : null;
+  }
+
+  function updateTarget(x, y){
+    const el = document.elementFromPoint(x, y);
+    const target = el && el.closest('.card[data-card-id], .card-placeholder');
+    if (!target || target === placeholder) return;
+    const targetRect = target.getBoundingClientRect();
+    const before = y < targetRect.top + targetRect.height / 2;
+    container.insertBefore(placeholder, before ? target : target.nextSibling);
+  }
+
+  function autoScrollTick(){
+    if (!dragEl) { rafId = null; return; }
+    const edge = 80, maxSpeed = 16;
+    const h = window.innerHeight;
+    let dy = 0;
+    if (lastY < edge) dy = -maxSpeed * (1 - lastY / edge);
+    else if (lastY > h - edge) dy = maxSpeed * (1 - (h - lastY) / edge);
+    if (dy){
+      const host = scrollHost();
+      if (host) host.scrollTop += dy; else window.scrollBy(0, dy);
+      updateTarget(lastX, lastY);
+    }
+    rafId = requestAnimationFrame(autoScrollTick);
+  }
 
   container.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -1862,6 +1892,7 @@ function initStatsReorder(){
     offsetY = e.clientY - rect.top;
     activePointerId = e.pointerId;
     dragEl = card;
+    lastX = e.clientX; lastY = e.clientY;
 
     placeholder = document.createElement('div');
     placeholder.className = 'card-placeholder';
@@ -1873,20 +1904,16 @@ function initStatsReorder(){
     card.style.top = rect.top + 'px';
     card.classList.add('dragging');
     try { handle.setPointerCapture(e.pointerId); } catch(err) {}
+    if (!rafId) rafId = requestAnimationFrame(autoScrollTick);
   });
 
   const handleMove = e => {
     if (!dragEl || e.pointerId !== activePointerId) return;
     e.preventDefault();
+    lastX = e.clientX; lastY = e.clientY;
     dragEl.style.left = (e.clientX - offsetX) + 'px';
     dragEl.style.top = (e.clientY - offsetY) + 'px';
-
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const target = el && el.closest('.card[data-card-id], .card-placeholder');
-    if (!target || target === placeholder) return;
-    const targetRect = target.getBoundingClientRect();
-    const before = e.clientY < targetRect.top + targetRect.height / 2;
-    container.insertBefore(placeholder, before ? target : target.nextSibling);
+    updateTarget(e.clientX, e.clientY);
   };
   container.addEventListener('pointermove', handleMove);
 
