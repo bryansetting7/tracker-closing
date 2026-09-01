@@ -296,6 +296,16 @@
         <div class="col"><span class="k">Primes</span><span class="v" id="prim">0 €</span></div>
       </div>
     </div>
+    <div class="card hide" id="next-call-card" style="grid-column:1/-1">
+      <div class="cap">Prochain call booké</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px">
+        <div style="min-width:0">
+          <div style="font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="next-call-name">—</div>
+          <div class="note" style="padding:0;margin-top:3px" id="next-call-when">—</div>
+        </div>
+        <button type="button" class="btn ghost" id="next-call-btn" style="width:auto;padding:8px 12px;flex:none">Voir</button>
+      </div>
+    </div>
     <div class="duo">
       <div class="card">
         <div class="cap">Taux de closing</div>
@@ -392,8 +402,11 @@
           <input type="number" id="commission" min="0" step="1" placeholder="Montant en euros">
         </div>
         <div class="field hide" id="suivi-date-field">
-          <label for="suivi-date">Date du suivi prévu</label>
-          <input type="date" id="suivi-date">
+          <label for="suivi-date">Call prévu le</label>
+          <div style="display:flex;gap:8px">
+            <input type="date" id="suivi-date" style="flex:1.3;min-width:0">
+            <input type="time" id="suivi-time" style="flex:1;min-width:0">
+          </div>
         </div>
         <div class="field">
           <label for="objection">Objection rencontrée (optionnel)</label>
@@ -762,6 +775,7 @@ const $ = id => document.getElementById(id);
 const today = () => new Date().toISOString().split('T')[0];
 const euros = n => Math.round(n).toLocaleString('fr-FR').replace(/\u202f/g,' ') + ' €';
 const fmtDate = iso => { const p = String(iso).split('-'); return p[2]+'/'+p[1]+'/'+p[0].slice(2); };
+const fmtSuiviWhen = c => c && c.suiviDate ? fmtDate(c.suiviDate) + (c.suiviTime ? ' à ' + c.suiviTime : '') : '';
 const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
 const clientName = id => { const c = clients.find(x => x.id === id); return c ? c.name : 'Inconnu'; };
 const newId = () => 'c' + Date.now() + Math.floor(Math.random()*1000);
@@ -1057,6 +1071,7 @@ function render(){
 
   renderWeeklyDigest(cs, ps);
   renderMotivation(cs, ps);
+  renderNextBookedCall();
 
   let detail;
   if (objectif === 0) {
@@ -1100,7 +1115,7 @@ function render(){
     cls: c.result === 'closed' ? 'closed' : (c.result === 'noshow' ? 'noshow' : (c.result === 'suivi' ? 'suivi' : 'perdu')),
     objection: objectionLabel(c),
     offerName: c.offerName || '',
-    suiviDate: c.result === 'suivi' && c.suiviDate ? fmtDate(c.suiviDate) : '',
+    suiviDate: fmtSuiviWhen(c),
     del: "deleteCall('" + c.id + "')"
   })).concat(psForList.map(p => ({
     id: p.id, type: 'prime', date: p.date, name: p.label ? esc(p.label) : 'Prime', client: clientName(p.clientId),
@@ -1210,6 +1225,7 @@ function addCall(){
   const prospect = $('prospect').value.trim();
   const amount = parseFloat($('commission').value);
   const suiviDateVal = $('suivi-date').value;
+  const suiviTimeVal = $('suivi-time').value;
   if (!prospect || !callClientId || !callResult || (callResult === 'closed' && (!amount || amount <= 0)) || (callResult === 'suivi' && !suiviDateVal)) {
     $('call-err').style.display = 'block';
     return;
@@ -1222,12 +1238,13 @@ function addCall(){
     commission: callResult === 'closed' ? amount : 0,
     offerName: callResult === 'closed' ? selectedOfferName : null,
     suiviDate: callResult === 'suivi' ? suiviDateVal : null,
+    suiviTime: callResult === 'suivi' ? (suiviTimeVal || '') : '',
     objection: objectionVal,
     objectionDetail: objectionVal === 'autre' ? $('objection-autre').value.trim() : '',
     notes: $('call-notes').value.trim()
   });
   persist(KEYS.calls, calls);
-  $('prospect').value = ''; $('commission').value = ''; $('call-date').value = today(); $('suivi-date').value = today();
+  $('prospect').value = ''; $('commission').value = ''; $('call-date').value = today(); $('suivi-date').value = today(); $('suivi-time').value = '';
   $('objection').value = ''; $('objection-autre').value = ''; $('objection-autre-field').classList.add('hide');
   $('call-notes').value = '';
   $('duplicate-warning').classList.add('hide');
@@ -1428,7 +1445,7 @@ function renderProspectCard(){
     const details = [];
     if (c.result === 'closed' && c.commission) details.push('Commission : ' + euros(c.commission));
     if (c.offerName) details.push('Offre : ' + esc(c.offerName));
-    if (c.result === 'suivi' && c.suiviDate) details.push('Suivi prévu le ' + fmtDate(c.suiviDate));
+    if (c.result === 'suivi' && c.suiviDate) details.push('Call prévu le ' + fmtSuiviWhen(c));
     const obj = objectionLabel(c);
     if (obj) details.push('Objection : ' + obj);
     return `<div class="timeline-item">
@@ -1988,7 +2005,7 @@ function exportCSV(){
   const rows = [['Type','Date','Infopreneur','Prospect / Libellé','Résultat','Montant (€)','Offre','Objection','Date de suivi','Notes']];
   calls.slice().sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(c => {
     const statusLabel = c.result === 'closed' ? 'Closé' : (c.result === 'noshow' ? 'Absent' : (c.result === 'suivi' ? 'Suivi prévu' : 'Perdu'));
-    rows.push(['Call', c.date, clientName(c.clientId), c.prospect || '', statusLabel, c.result === 'closed' ? (c.commission || 0) : '', c.offerName || '', objectionLabel(c) || '', c.suiviDate || '', c.notes || '']);
+    rows.push(['Call', c.date, clientName(c.clientId), c.prospect || '', statusLabel, c.result === 'closed' ? (c.commission || 0) : '', c.offerName || '', objectionLabel(c) || '', (c.suiviDate || '') + (c.suiviTime ? ' ' + c.suiviTime : ''), c.notes || '']);
   });
   primes.slice().sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(p => {
     rows.push(['Prime', p.date, clientName(p.clientId), p.label || '', '', p.montant || 0, '', '', '', '']);
@@ -2366,6 +2383,7 @@ function isEventAlreadyLogged(ev, name){
 }
 
 function renderAgendaEvents(){
+  renderNextBookedCall();
   const list = $('agenda-events');
   if (!list) return;
   const events = agendaFilter === 'upcoming' ? upcomingAgendaEvents : pastAgendaEvents;
@@ -2412,6 +2430,48 @@ function dismissAgendaEvent(source, i){
   }
   arr.splice(i, 1);
   renderAgendaEvents();
+}
+
+function renderNextBookedCall(){
+  const card = $('next-call-card');
+  if (!card) return;
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const suiviCands = calls
+    .filter(c => c.result === 'suivi' && c.suiviDate)
+    .map(c => ({
+      dt: new Date(c.suiviDate + 'T' + (c.suiviTime || '00:00') + ':00'),
+      name: c.prospect || 'Rendez-vous',
+      hasTime: !!c.suiviTime,
+      source: 'suivi'
+    }))
+    .filter(x => !isNaN(x.dt) && x.dt >= todayStart);
+
+  const calCands = upcomingAgendaEvents
+    .filter(e => e.start && e.start.dateTime)
+    .map(e => ({
+      dt: new Date(e.start.dateTime),
+      name: guessNameFromEvent(e) || e.summary || 'Rendez-vous',
+      hasTime: true,
+      source: 'agenda'
+    }));
+
+  const next = suiviCands.concat(calCands).sort((a,b) => a.dt - b.dt)[0];
+  if (!next) { card.classList.add('hide'); return; }
+  card.classList.remove('hide');
+  const dateLabel = next.dt.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const timeLabel = next.hasTime ? next.dt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+  $('next-call-name').textContent = next.name;
+  $('next-call-when').textContent = dateLabel + (timeLabel ? ' à ' + timeLabel : ' (heure non précisée)');
+  const btn = $('next-call-btn');
+  if (next.source === 'agenda') {
+    btn.textContent = "Voir dans l'Agenda";
+    btn.onclick = () => setTab('agenda');
+  } else {
+    btn.textContent = 'Voir le suivi';
+    btn.onclick = () => viewSuivis();
+  }
 }
 
 function useAgendaEvent(source, i){
