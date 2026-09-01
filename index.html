@@ -2427,12 +2427,30 @@ function scheduleDriveAutoBackup(){
   driveAutoBackupTimer = setTimeout(() => { driveBackupNow(true); }, 6000);
 }
 
+const AGENDA_GENERIC_WORDS = ['call','rdv','rendez-vous','appel','reunion','réunion','meeting','formation','debrief','découverte','decouverte','consultation','rappel','followup','follow-up','suivi','onboarding','bilan','point','session','vente','closing','demo','démo','presentation','présentation','entretien'];
+const AGENDA_GENERIC_PREFIX_RE = new RegExp('^(' + AGENDA_GENERIC_WORDS.join('|') + ')\\s*(avec|with|:|-|–|—)?\\s*', 'i');
+const AGENDA_GENERIC_SUFFIX_RE = new RegExp('\\s*[-–—:]\\s*(' + AGENDA_GENERIC_WORDS.join('|') + ').*$', 'i');
+
 function guessNameFromEvent(ev){
   const text = ((ev.description || '') + '\n' + (ev.summary || '')).replace(/<[^>]+>/g, ' ');
   let m = text.match(/(?:Nom|Pr[ée]nom|Prospect|Client)\s*:?[ \t]*([A-ZÀ-Ý][a-zà-ÿ'’-]+(?:[ \t]+[A-ZÀ-Ý][a-zà-ÿ'’-]+)?)/);
   if (m) return m[1];
   m = text.match(/(?:Hello|Salut|Bonjour|Coucou)[\s,]+([A-ZÀ-Ý][a-zà-ÿ'’-]+)/);
   if (m) return m[1];
+
+  // Fallback: many people just title the event with the prospect's name directly
+  // ("Fabrice Ads", "Guillaume"...), sometimes with a generic word attached
+  // ("Call - Paul Martin", "Découverte - Théo") — try the cleaned-up event title.
+  let s = (ev.summary || '').trim();
+  if (s) {
+    s = s.replace(AGENDA_GENERIC_PREFIX_RE, '');
+    s = s.replace(AGENDA_GENERIC_SUFFIX_RE, '');
+    s = s.replace(/\s*\([^)]*\)\s*$/, '');
+    s = s.trim();
+    const looksLikeName = s && s.length <= 40 && /^[A-ZÀ-Ý][\wà-ÿ'’.-]*(\s+[A-ZÀ-Ý][\wà-ÿ'’.-]*){0,3}$/.test(s);
+    const isGeneric = looksLikeName && AGENDA_GENERIC_WORDS.includes(s.toLowerCase().split(' ')[0]);
+    if (looksLikeName && !isGeneric) return s;
+  }
   return '';
 }
 
