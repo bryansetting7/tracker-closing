@@ -2502,7 +2502,7 @@ async function driveBackupNow(silent){
       setTimeout(() => { msg.style.display = 'none'; msg.textContent = prevText; }, 2500);
     }
   } catch (e) {
-    if (!silent) $('drive-status').textContent = 'Erreur pendant la sauvegarde Drive. Réessaie.';
+    if (!silent) { $('drive-status').textContent = 'Erreur pendant la sauvegarde Drive : ' + (e && e.message ? e.message : 'inconnue') + '.'; console.error('driveBackupNow error', e); }
   }
 }
 
@@ -2515,7 +2515,7 @@ async function driveRestore(){
   try {
     if (!driveBackupFileId) driveBackupFileId = await driveFindBackupFile();
     if (!driveBackupFileId) {
-      $('drive-status').textContent = 'Aucune sauvegarde trouvée sur ce Drive.';
+      $('drive-status').textContent = 'Aucune sauvegarde trouvée sur ce Drive (avec cet identifiant OAuth — si tu as changé d\'identifiant depuis la sauvegarde, l\'app ne peut plus la voir).';
       return;
     }
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveBackupFileId}?alt=media`, {
@@ -2523,7 +2523,9 @@ async function driveRestore(){
     });
     if (res.status === 401) { driveAccessToken = null; updateDriveCardVisibility(); alert('Session Drive expirée, reconnecte-toi.'); return; }
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
+    let data;
+    try { data = await res.json(); }
+    catch (parseErr) { throw new Error('le fichier de sauvegarde sur Drive n\'est pas un JSON valide'); }
     const ok = applyImportedPayload(data, 'la sauvegarde Google Drive');
     updateDriveStatusText();
     if (ok) {
@@ -2532,9 +2534,12 @@ async function driveRestore(){
       msg.textContent = 'Données restaurées depuis Drive.';
       msg.style.display = 'block';
       setTimeout(() => { msg.style.display = 'none'; msg.textContent = prevText; }, 2500);
+    } else {
+      $('drive-status').textContent = 'Restauration annulée.';
     }
   } catch (e) {
-    $('drive-status').textContent = 'Erreur pendant la restauration. Réessaie.';
+    console.error('driveRestore error', e);
+    $('drive-status').textContent = 'Erreur pendant la restauration : ' + (e && e.message ? e.message : 'inconnue') + '.';
   }
 }
 
