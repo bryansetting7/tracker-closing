@@ -36,7 +36,7 @@
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;background:#f7f6f3}
-  body{font-family:'Instrument Sans',-apple-system,system-ui,sans-serif;color:#16181b;display:flex;flex-direction:column;min-height:100vh}
+  body{font-family:'Instrument Sans',-apple-system,system-ui,sans-serif;color:#16181b;display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
   .head{padding:max(16px,env(safe-area-inset-top)) 20px 14px;border-bottom:1px solid #e6e3dd;background:#f7f6f3;position:sticky;top:0;z-index:5}
   .head .top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
   .eyebrow{font-weight:600;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:#8a8880}
@@ -69,6 +69,7 @@
   input[type=date],input[type=number]{font-family:'IBM Plex Mono',monospace}
   input::placeholder{color:#b3b0a8}
   input:focus{outline:none;border-color:#16181b}
+  input[type=checkbox]{width:17px;height:17px;flex:none;padding:0;margin:0;border:1px solid #c3c2b7;border-radius:5px;background:#fbfaf8;accent-color:#16181b}
   select{width:100%;padding:12px 13px;border:1px solid #e0ddd6;border-radius:11px;background:#fbfaf8;font-size:15px;color:#16181b;font-family:'Instrument Sans',sans-serif;appearance:none;-webkit-appearance:none}
   select:focus{outline:none;border-color:#16181b}
   .obj-tag{background:#fbf0e3;color:#a6650f}
@@ -158,10 +159,10 @@
     .modal-card{border-radius:18px;max-height:80vh}
   }
   @media (min-width:860px){
-    body{display:grid;grid-template-columns:220px 1fr;grid-template-rows:auto 1fr;grid-template-areas:"nav head" "nav main";min-height:100vh}
+    body{display:grid;grid-template-columns:220px 1fr;grid-template-rows:auto 1fr;grid-template-areas:"nav head" "nav main";min-height:100vh;min-height:100dvh}
     .head{grid-area:head;position:static;max-width:960px;width:100%;margin:0 auto;border-bottom:1px solid #e6e3dd;padding:24px 32px 16px}
     main{grid-area:main;max-width:960px;width:100%;margin:0 auto;padding:24px 32px 48px;overflow:visible}
-    .tabbar{grid-area:nav;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:3px;border-top:none;border-right:1px solid #e6e3dd;padding:28px 14px;position:sticky;top:0;align-self:start;height:100vh;background:#fbfaf8}
+    .tabbar{grid-area:nav;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:3px;border-top:none;border-right:1px solid #e6e3dd;padding:28px 14px;position:sticky;top:0;align-self:start;height:100vh;height:100dvh;background:#fbfaf8}
     .tabbar button{flex-direction:row;justify-content:flex-start;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;font-size:13px}
     .tabbar button.on{background:#eeece7}
     .tabbar .dot{width:6px;height:6px;border-radius:50%}
