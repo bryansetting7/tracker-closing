@@ -99,7 +99,7 @@
   .warn-banner{display:none;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;line-height:1.5;color:#8a5a12;background:#fdf1de;border:1px solid #f0d9ab;border-radius:12px;padding:11px 13px;margin-bottom:2px}
   .warn-banner button{flex:none;padding:8px 12px;border:none;border-radius:9px;background:#8a5a12;color:#fff;font:600 12px 'Instrument Sans';cursor:pointer}
   .save-fail{font-size:12.5px;line-height:1.5;color:#b83a2e;background:#fbeceb;border-radius:11px;padding:11px 13px;margin-bottom:2px}
-  .undo-toast{position:fixed;left:16px;right:16px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#16181b;color:#fff;border-radius:14px;padding:13px 15px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+  .undo-toast{position:fixed;left:16px;right:16px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#16181b;color:#fff;border-radius:14px;padding:13px 15px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.2)}
   .undo-toast.hide{display:none}
   .undo-toast button{flex:none;padding:8px 14px;border:none;border-radius:9px;background:#fff;color:#16181b;font:600 12.5px 'Instrument Sans';cursor:pointer}
   .note{font-size:12px;line-height:1.6;color:#8a8880;padding:0 4px;text-wrap:pretty}
@@ -672,7 +672,7 @@
         <button type="button" class="btn ghost" style="margin-top:6px" onclick="saveProspectContact()">Enregistrer le contact</button>
       </div>
     </div>
-    <button type="button" class="btn ghost" style="margin-top:14px" onclick="duplicateProspectCall()">Dupliquer un call pour ce prospect</button>
+    <button type="button" class="btn ghost" style="margin-top:14px" id="pm-duplicate-btn" onclick="duplicateProspectCall()">Dupliquer un call pour ce prospect</button>
     <button type="button" class="btn danger" style="margin-top:8px" onclick="deleteProspect()">Supprimer ce prospect</button>
     <div class="timeline" id="pm-timeline" style="margin-top:14px"></div>
   </div>
@@ -806,6 +806,7 @@ let callClientId = null, callResult = null, primeClientId = null;
 let editingCallId = null;
 let statsCardOrder = [], statsDefaultOrder = [];
 let currentProspectKey = null;
+let currentProspectClientId = null, currentProspectName = '';
 let selectedOfferId = null, selectedOfferName = null;
 
 const $ = id => document.getElementById(id);
@@ -1183,6 +1184,8 @@ function render(){
           <button class="del" aria-label="Supprimer" onclick="event.stopPropagation();${i.del}">✕</button>
         </div>
       </div>`).join('');
+
+  if (currentProspectKey && !$('prospect-modal').classList.contains('hide')) renderProspectCard();
 }
 
 function renderWeeklyDigest(cs, ps){
@@ -1397,6 +1400,8 @@ function openProspectCard(clientId, prospect){
   currentProspectKey = prospectKey(clientId, prospect);
   const entries = calls.filter(c => prospectKey(c.clientId, c.prospect) === currentProspectKey);
   if (!entries.length) { currentProspectKey = null; return; }
+  currentProspectClientId = clientId;
+  currentProspectName = prospect;
   renderProspectCard();
   $('prospect-modal').classList.remove('hide');
 }
@@ -1404,6 +1409,8 @@ function openProspectCard(clientId, prospect){
 function closeProspectCard(){
   $('prospect-modal').classList.add('hide');
   currentProspectKey = null;
+  currentProspectClientId = null;
+  currentProspectName = '';
 }
 
 function renderProspectSearchResults(){
@@ -1567,13 +1574,14 @@ function duplicateProspectCall(){
   if (!currentProspectKey) return;
   const entries = calls.filter(c => prospectKey(c.clientId, c.prospect) === currentProspectKey)
     .sort((a,b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id)));
-  if (!entries.length) return;
-  const latest = entries[0];
+  const prospectName = entries.length ? entries[0].prospect : currentProspectName;
+  const clientId = entries.length ? entries[0].clientId : currentProspectClientId;
+  if (!prospectName || !clientId) return;
   closeProspectCard();
   setTab('ajouter');
   setMode('call');
-  $('prospect').value = latest.prospect;
-  setCallClient(latest.clientId);
+  $('prospect').value = prospectName;
+  setCallClient(clientId);
   $('call-date').value = today();
 }
 
@@ -1582,8 +1590,19 @@ function renderProspectCard(){
   const entries = calls
     .filter(c => prospectKey(c.clientId, c.prospect) === currentProspectKey)
     .sort((a,b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id)));
-  if (!entries.length) { closeProspectCard(); return; }
 
+  if (!entries.length) {
+    $('pm-name').textContent = currentProspectName || 'Prospect';
+    $('pm-tags').innerHTML = `<span class="tag">${esc(clientName(currentProspectClientId))}</span>`;
+    $('pm-summary').innerHTML = `<div class="col"><span class="k">Calls</span><span class="v">0</span></div>`;
+    renderProspectTags();
+    renderProspectContact();
+    $('pm-duplicate-btn').textContent = 'Ajouter un call pour ce prospect';
+    $('pm-timeline').innerHTML = '<div class="empty">Aucun call pour ce prospect pour l\'instant.</div>';
+    return;
+  }
+
+  $('pm-duplicate-btn').textContent = 'Dupliquer un call pour ce prospect';
   const latest = entries[0], first = entries[entries.length - 1];
   const totalComm = entries.filter(c => c.result === 'closed').reduce((a,c) => a + (c.commission || 0), 0);
   const closedN = entries.filter(c => c.result === 'closed').length;
@@ -1623,10 +1642,6 @@ function renderProspectCard(){
 
 function deleteCallFromCard(id){
   if (!currentProspectKey) return;
-  const entries = calls.filter(c => prospectKey(c.clientId, c.prospect) === currentProspectKey);
-  if (entries.length <= 1) {
-    if (!confirm("C'est le dernier call de ce prospect — le supprimer fermera aussi sa fiche (tu pourras cliquer sur « Annuler » juste après si c'est une erreur). Continuer ?")) return;
-  }
   deleteCall(id);
   renderProspectCard();
 }
