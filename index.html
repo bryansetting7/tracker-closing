@@ -306,6 +306,12 @@
         <div class="sep"></div>
         <div class="col"><span class="k">Primes</span><span class="v" id="prim">0 €</span></div>
       </div>
+      <div class="sub" style="margin-top:8px"><a href="javascript:void(0)" onclick="openPaymentsModal()" class="inline-link">Voir les paiements reçus →</a></div>
+    </div>
+    <div class="card" style="grid-column:1/-1">
+      <div class="cap">Rechercher un prospect</div>
+      <input type="text" id="prospect-search-input" placeholder="Nom du prospect…" oninput="renderProspectSearchResults()" style="margin-top:8px">
+      <div id="prospect-search-results" class="hide" style="margin-top:6px"></div>
     </div>
     <div class="card hide" id="next-call-card" style="grid-column:1/-1">
       <div class="cap">Prochain call booké</div>
@@ -669,6 +675,19 @@
     <button type="button" class="btn ghost" style="margin-top:14px" onclick="duplicateProspectCall()">Dupliquer un call pour ce prospect</button>
     <button type="button" class="btn danger" style="margin-top:8px" onclick="deleteProspect()">Supprimer ce prospect</button>
     <div class="timeline" id="pm-timeline" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<div class="modal-overlay hide" id="payments-modal" onclick="if(event.target===this) closePaymentsModal()">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Paiements reçus</div>
+        <div class="modal-tags" id="payments-summary"></div>
+      </div>
+      <button type="button" class="modal-close" onclick="closePaymentsModal()" aria-label="Fermer">✕</button>
+    </div>
+    <div id="payments-list" style="margin-top:14px"></div>
   </div>
 </div>
 
@@ -1387,6 +1406,80 @@ function closeProspectCard(){
   currentProspectKey = null;
 }
 
+function renderProspectSearchResults(){
+  const input = $('prospect-search-input');
+  const results = $('prospect-search-results');
+  if (!input || !results) return;
+  const q = input.value.trim().toLowerCase();
+  if (!q) { results.classList.add('hide'); results.innerHTML = ''; return; }
+
+  const byKey = new Map();
+  const counts = {};
+  calls.forEach(c => {
+    const key = prospectKey(c.clientId, c.prospect);
+    counts[key] = (counts[key] || 0) + 1;
+    const existing = byKey.get(key);
+    if (!existing || String(c.date) > String(existing.date)) {
+      byKey.set(key, { id: c.id, clientId: c.clientId, prospect: c.prospect, date: c.date });
+    }
+  });
+
+  const matches = [...byKey.entries()]
+    .filter(([, v]) => String(v.prospect || '').toLowerCase().includes(q))
+    .map(([key, v]) => ({ ...v, count: counts[key] }))
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+    .slice(0, 8);
+
+  results.classList.remove('hide');
+  results.innerHTML = matches.length === 0
+    ? '<div class="note" style="padding:6px 0">Aucun prospect trouvé.</div>'
+    : matches.map(m => `
+      <div class="item clickable" onclick="$('prospect-search-input').value='';renderProspectSearchResults();openProspectCardByCallId('${m.id}')">
+        <div class="l">
+          <div class="name-row"><span class="name">${esc(m.prospect)}</span><span class="tag">${esc(clientName(m.clientId))}</span></div>
+          <div class="meta"><span>${m.count} call${m.count > 1 ? 's' : ''} · dernier le ${fmtDate(m.date)}</span></div>
+        </div>
+        <div class="r"><span class="chev">›</span></div>
+      </div>`).join('');
+}
+
+function openPaymentsModal(){
+  renderPaymentsModal();
+  $('payments-modal').classList.remove('hide');
+}
+
+function closePaymentsModal(){
+  $('payments-modal').classList.add('hide');
+}
+
+function renderPaymentsModal(){
+  const cs = scoped(calls), ps = scoped(primes);
+  const items = cs.filter(c => c.result === 'closed' && c.commission).map(c => ({
+    id: c.id, type: 'call', date: c.date, name: c.prospect || 'Prospect', client: clientName(c.clientId),
+    montant: c.commission || 0, offerName: c.offerName || ''
+  })).concat(ps.map(p => ({
+    id: p.id, type: 'prime', date: p.date, name: p.label || 'Prime', client: clientName(p.clientId),
+    montant: p.montant || 0, offerName: ''
+  }))).sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id)));
+
+  const total = items.reduce((a, i) => a + i.montant, 0);
+  $('payments-summary').innerHTML = `<span class="tag">${items.length} paiement${items.length > 1 ? 's' : ''}</span><span class="tag">${euros(total)} au total</span>`;
+
+  $('payments-list').innerHTML = items.length === 0
+    ? '<div class="empty">Aucun paiement enregistré pour l\'instant.</div>'
+    : items.map(i => `
+      <div class="item${i.type === 'call' ? ' clickable' : ''}"${i.type === 'call' ? ` onclick="closePaymentsModal();openProspectCardByCallId('${i.id}')"` : ''}>
+        <div class="l">
+          <div class="name-row"><span class="name">${esc(i.name)}</span><span class="tag">${esc(i.client)}</span>${i.offerName ? '<span class="tag offer-tag">' + esc(i.offerName) + '</span>' : ''}</div>
+          <div class="meta"><span>${fmtDate(i.date)}</span><span class="amt">+ ${euros(i.montant)}</span></div>
+        </div>
+        <div class="r">
+          <span class="status ${i.type === 'call' ? 'closed' : 'prime'}">${i.type === 'call' ? 'Closé' : 'Prime'}</span>
+          ${i.type === 'call' ? '<span class="chev">›</span>' : ''}
+        </div>
+      </div>`).join('');
+}
+
 function renderProspectTags(){
   const el = $('pm-custom-tags');
   if (!el || !currentProspectKey) return;
@@ -1540,6 +1633,7 @@ function deleteCallFromCard(id){
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !$('prospect-modal').classList.contains('hide')) closeProspectCard();
+  if (e.key === 'Escape' && !$('payments-modal').classList.contains('hide')) closePaymentsModal();
 });
 
 function addClient(){
@@ -2445,7 +2539,7 @@ async function driveFindBackupFile(){
     headers: { Authorization: 'Bearer ' + driveAccessToken }
   });
   if (res.status === 401) { driveAccessToken = null; return null; }
-  if (!res.ok) throw new Error('HTTP ' + res.status);
+  if (!res.ok) { const detail = await driveErrorDetail(res); throw new Error('HTTP ' + res.status + (detail ? ' — ' + detail : '')); }
   const data = await res.json();
   return (data.files && data.files[0]) ? data.files[0].id : null;
 }
@@ -2457,6 +2551,18 @@ function buildBackupPayload(){
     clients: clients, calls: calls, primes: primes,
     objectifs: objectifs, offers: offers, weeklyObjectifs: weeklyObjectifs
   };
+}
+
+async function driveErrorDetail(res){
+  let detail = '';
+  try {
+    const errJson = await res.clone().json();
+    detail = errJson && errJson.error && errJson.error.message ? errJson.error.message : '';
+  } catch (e) {}
+  if (res.status === 403) {
+    detail += (detail ? ' — ' : '') + "vérifie que l'API Google Drive est bien activée dans ton projet Google Cloud (APIs & Services → Bibliothèque → Google Drive API → Activer), en plus de l'identifiant OAuth.";
+  }
+  return detail;
 }
 
 async function driveBackupNow(silent){
@@ -2489,7 +2595,7 @@ async function driveBackupNow(silent){
       if (res.ok) { const created = await res.json(); driveBackupFileId = created.id; }
     }
     if (res.status === 401) { driveAccessToken = null; updateDriveCardVisibility(); if (!silent) alert('Session Drive expirée, reconnecte-toi.'); return; }
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) { const detail = await driveErrorDetail(res); throw new Error('HTTP ' + res.status + (detail ? ' — ' + detail : '')); }
     localStorage.setItem(DRIVE_LAST_BACKUP_KEY, Date.now().toString());
     localStorage.setItem(LAST_EXPORT_KEY, Date.now().toString());
     checkExportReminder();
@@ -2522,7 +2628,7 @@ async function driveRestore(){
       headers: { Authorization: 'Bearer ' + driveAccessToken }
     });
     if (res.status === 401) { driveAccessToken = null; updateDriveCardVisibility(); alert('Session Drive expirée, reconnecte-toi.'); return; }
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) { const detail = await driveErrorDetail(res); throw new Error('HTTP ' + res.status + (detail ? ' — ' + detail : '')); }
     let data;
     try { data = await res.json(); }
     catch (parseErr) { throw new Error('le fichier de sauvegarde sur Drive n\'est pas un JSON valide'); }
