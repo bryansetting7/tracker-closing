@@ -445,9 +445,10 @@
           <label for="call-notes">Notes (optionnel)</label>
           <textarea id="call-notes" placeholder="Contexte, ce qui a marché ou pas, prochaine étape..."></textarea>
         </div>
-        <div class="field">
+        <div class="field" id="call-recording-link-field">
           <label for="call-recording-link">Lien de l'appel enregistré (optionnel)</label>
           <input type="url" id="call-recording-link" placeholder="https://...">
+          <div class="note" style="margin-top:2px">Pour ajouter plusieurs liens ou en modifier après coup, fais-le depuis la fiche du prospect.</div>
         </div>
         <div class="err" id="call-err">Renseigne l'infopreneur, le nom, le résultat, la commission si le call est closé, et la date de suivi si un suivi est prévu.</div>
         <button type="button" class="btn" id="call-submit-btn" onclick="addCall()">Ajouter le call</button>
@@ -1292,8 +1293,7 @@ function addCall(){
     suiviTime: callResult === 'suivi' ? (suiviTimeVal || '') : '',
     objection: objectionVal,
     objectionDetail: objectionVal === 'autre' ? $('objection-autre').value.trim() : '',
-    notes: $('call-notes').value.trim(),
-    recordingUrl: $('call-recording-link').value.trim()
+    notes: $('call-notes').value.trim()
   };
   if (editingCallId) {
     const idx = calls.findIndex(c => c.id === editingCallId);
@@ -1301,8 +1301,10 @@ function addCall(){
     editingCallId = null;
     $('edit-call-banner').style.display = 'none';
     $('call-submit-btn').textContent = 'Ajouter le call';
+    $('call-recording-link-field').classList.remove('hide');
   } else {
-    calls.push(Object.assign({ id: String(Date.now()) }, payload));
+    const linkVal = $('call-recording-link').value.trim();
+    calls.push(Object.assign({ id: String(Date.now()), recordingUrls: linkVal ? [linkVal] : [] }, payload));
   }
   persist(KEYS.calls, calls);
   $('prospect').value = ''; $('commission').value = ''; $('call-date').value = today(); $('suivi-date').value = today(); $('suivi-time').value = '';
@@ -1339,7 +1341,8 @@ function editCall(id){
   onObjectionChange();
   if (c.objection === 'autre') $('objection-autre').value = c.objectionDetail || '';
   $('call-notes').value = c.notes || '';
-  $('call-recording-link').value = c.recordingUrl || '';
+  $('call-recording-link').value = '';
+  $('call-recording-link-field').classList.add('hide');
   checkDuplicateProspect();
   $('edit-call-banner').style.display = 'flex';
   $('call-submit-btn').textContent = 'Enregistrer les modifications';
@@ -1353,6 +1356,7 @@ function cancelEditCall(){
   $('objection').value = ''; $('objection-autre').value = ''; $('objection-autre-field').classList.add('hide');
   $('call-notes').value = '';
   $('call-recording-link').value = '';
+  $('call-recording-link-field').classList.remove('hide');
   $('duplicate-warning').classList.add('hide');
   selectedOfferId = null; selectedOfferName = null;
   setCallClient(null); setResult(null);
@@ -1403,6 +1407,12 @@ function deletePrime(id){
 
 function prospectKey(clientId, prospect){
   return clientId + '|' + String(prospect || '').trim().toLowerCase();
+}
+
+function getCallLinks(c){
+  if (Array.isArray(c.recordingUrls)) return c.recordingUrls.filter(u => u && /^https?:\/\//i.test(u));
+  if (c.recordingUrl && /^https?:\/\//i.test(c.recordingUrl)) return [c.recordingUrl];
+  return [];
 }
 
 function openProspectCardByCallId(id){
@@ -1646,18 +1656,23 @@ function renderProspectCard(){
     if (c.result === 'suivi' && c.suiviDate) details.push('Call prévu le ' + fmtSuiviWhen(c));
     const obj = objectionLabel(c);
     if (obj) details.push('Objection : ' + obj);
-    const hasLink = c.recordingUrl && /^https?:\/\//i.test(c.recordingUrl);
+    const links = getCallLinks(c);
+    const linksHTML = links.map((url, i) => `
+        <div style="display:flex;align-items:center;gap:8px${i > 0 ? ';margin-top:4px' : ''}">
+          <a href="${esc(url)}" target="_blank" rel="noopener noreferrer" class="inline-link">🎥 ${links.length > 1 ? 'Enregistrement ' + (i + 1) : "Voir l'enregistrement de l'appel"} →</a>
+          <a href="javascript:void(0)" onclick="removeCallLink('${c.id}',${i})" style="font-size:11px;color:#a8a59e;font-weight:600" aria-label="Supprimer ce lien">✕</a>
+        </div>`).join('');
     return `<div class="timeline-item">
       <div class="trow"><span class="tdate">${fmtDate(c.date)}</span><span class="status ${cls}">${label}</span></div>
       ${details.length ? '<div class="tdetail">' + details.join(' · ') + '</div>' : ''}
       ${c.notes ? '<div class="tdetail" style="margin-top:4px;font-style:italic">' + esc(c.notes) + '</div>' : ''}
-      <div class="tdetail" style="margin-top:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        ${hasLink ? '<a href="' + esc(c.recordingUrl) + '" target="_blank" rel="noopener noreferrer" class="inline-link">🎥 Voir l\'enregistrement de l\'appel →</a>' : ''}
-        <a href="javascript:void(0)" onclick="toggleCallLinkEditor('${c.id}')" class="inline-link"${hasLink ? ' style="font-weight:400;text-decoration:none;color:#a8a59e"' : ''}>${hasLink ? 'Modifier le lien' : '+ Ajouter le lien de l\'appel'}</a>
+      <div class="tdetail" style="margin-top:4px">
+        ${linksHTML}
+        <a href="javascript:void(0)" onclick="toggleCallLinkAdder('${c.id}')" class="inline-link" style="display:inline-block${links.length ? ';margin-top:6px;font-weight:400;text-decoration:none;color:#a8a59e' : ''}">+ Ajouter ${links.length ? 'un autre' : 'le'} lien de l'appel</a>
       </div>
       <div class="inline-edit hide" id="pm-link-row-${c.id}" style="margin-top:6px">
         <input type="url" id="pm-link-input-${c.id}" placeholder="https://..." style="flex:1;min-width:0">
-        <button type="button" onclick="saveCallRecordingLink('${c.id}')">Enregistrer</button>
+        <button type="button" onclick="addCallLink('${c.id}')">Ajouter</button>
       </div>
       <div style="display:flex;gap:12px;margin-top:7px">
         <button class="tdel" onclick="editCall('${c.id}')">Modifier</button>
@@ -1665,28 +1680,40 @@ function renderProspectCard(){
       </div>
     </div>`;
   }).join('');
-  entries.forEach(c => {
-    const inp = $('pm-link-input-' + c.id);
-    if (inp) inp.value = c.recordingUrl || '';
-  });
 }
 
-function toggleCallLinkEditor(id){
+function toggleCallLinkAdder(id){
   const row = $('pm-link-row-' + id);
   if (!row) return;
   row.classList.toggle('hide');
   if (!row.classList.contains('hide')) {
     const inp = $('pm-link-input-' + id);
-    if (inp) inp.focus();
+    if (inp) { inp.value = ''; inp.focus(); }
   }
 }
 
-function saveCallRecordingLink(id){
+function addCallLink(id){
   const idx = calls.findIndex(c => c.id === id);
   if (idx === -1) return;
   const inp = $('pm-link-input-' + id);
   if (!inp) return;
-  calls[idx] = Object.assign({}, calls[idx], { recordingUrl: inp.value.trim() });
+  const val = inp.value.trim();
+  if (!val) return;
+  const links = getCallLinks(calls[idx]).slice();
+  links.push(val);
+  calls[idx] = Object.assign({}, calls[idx], { recordingUrls: links });
+  delete calls[idx].recordingUrl;
+  persist(KEYS.calls, calls);
+  renderProspectCard();
+}
+
+function removeCallLink(id, index){
+  const idx = calls.findIndex(c => c.id === id);
+  if (idx === -1) return;
+  const links = getCallLinks(calls[idx]).slice();
+  links.splice(index, 1);
+  calls[idx] = Object.assign({}, calls[idx], { recordingUrls: links });
+  delete calls[idx].recordingUrl;
   persist(KEYS.calls, calls);
   renderProspectCard();
 }
@@ -2349,7 +2376,7 @@ function exportCSV(){
   const rows = [['Type','Date','Infopreneur','Prospect / Libellé','Résultat','Montant (€)','Offre','Objection','Date de suivi','Notes','Lien enregistrement']];
   calls.slice().sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(c => {
     const statusLabel = c.result === 'closed' ? 'Closé' : (c.result === 'noshow' ? 'Absent' : (c.result === 'suivi' ? 'Suivi prévu' : 'Perdu'));
-    rows.push(['Call', c.date, clientName(c.clientId), c.prospect || '', statusLabel, c.result === 'closed' ? (c.commission || 0) : '', c.offerName || '', objectionLabel(c) || '', (c.suiviDate || '') + (c.suiviTime ? ' ' + c.suiviTime : ''), c.notes || '', c.recordingUrl || '']);
+    rows.push(['Call', c.date, clientName(c.clientId), c.prospect || '', statusLabel, c.result === 'closed' ? (c.commission || 0) : '', c.offerName || '', objectionLabel(c) || '', (c.suiviDate || '') + (c.suiviTime ? ' ' + c.suiviTime : ''), c.notes || '', getCallLinks(c).join(' | ')]);
   });
   primes.slice().sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(p => {
     rows.push(['Prime', p.date, clientName(p.clientId), p.label || '', '', p.montant || 0, '', '', '', '', '']);
