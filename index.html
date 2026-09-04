@@ -308,11 +308,6 @@
       </div>
       <div class="sub" style="margin-top:8px"><a href="javascript:void(0)" onclick="openPaymentsModal()" class="inline-link">Voir les paiements reçus →</a></div>
     </div>
-    <div class="card" style="grid-column:1/-1">
-      <div class="cap">Rechercher un prospect</div>
-      <input type="text" id="prospect-search-input" placeholder="Nom du prospect…" oninput="renderProspectSearchResults()" style="margin-top:8px">
-      <div id="prospect-search-results" class="hide" style="margin-top:6px"></div>
-    </div>
     <div class="card hide" id="next-call-card" style="grid-column:1/-1">
       <div class="cap">Prochain call booké</div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px">
@@ -450,6 +445,10 @@
           <label for="call-notes">Notes (optionnel)</label>
           <textarea id="call-notes" placeholder="Contexte, ce qui a marché ou pas, prochaine étape..."></textarea>
         </div>
+        <div class="field">
+          <label for="call-recording-link">Lien de l'appel enregistré (optionnel)</label>
+          <input type="url" id="call-recording-link" placeholder="https://...">
+        </div>
         <div class="err" id="call-err">Renseigne l'infopreneur, le nom, le résultat, la commission si le call est closé, et la date de suivi si un suivi est prévu.</div>
         <button type="button" class="btn" id="call-submit-btn" onclick="addCall()">Ajouter le call</button>
       </div>
@@ -511,6 +510,14 @@
       <button type="button" data-sf="suivi" onclick="setStatusFilter('suivi')">Suivis</button>
     </div>
     <div class="list" id="list"></div>
+  </section>
+
+  <!-- PROSPECTS -->
+  <section id="view-prospects" class="hide">
+    <div class="field" style="margin-bottom:10px">
+      <input type="text" id="prospects-search" placeholder="Rechercher un prospect..." oninput="renderProspectsTab()">
+    </div>
+    <div class="list" id="prospects-list"></div>
   </section>
 
   <!-- STATS -->
@@ -637,6 +644,7 @@
   <button type="button" id="tab-ajouter" onclick="setTab('ajouter')"><span class="dot"></span>Ajouter</button>
   <button type="button" id="tab-agenda" onclick="setTab('agenda')"><span class="dot"></span>Agenda</button>
   <button type="button" id="tab-historique" onclick="setTab('historique')"><span class="dot"></span>Historique</button>
+  <button type="button" id="tab-prospects" onclick="setTab('prospects')"><span class="dot"></span>Prospects</button>
   <button type="button" id="tab-stats" onclick="setTab('stats')"><span class="dot"></span>Stats</button>
   <button type="button" id="tab-reglages" onclick="setTab('reglages')"><span class="dot"></span>Réglages</button>
 </nav>
@@ -791,8 +799,8 @@ function undoDelete(){
   pendingRemoval = null;
   $('undo-toast').classList.add('hide');
 }
-const TITLES = {suivi:'Suivi', ajouter:'Nouvelle entrée', agenda:'Agenda', historique:'Historique', stats:'Statistiques', reglages:'Réglages'};
-const TABS = ['suivi','ajouter','agenda','historique','stats','reglages'];
+const TITLES = {suivi:'Suivi', ajouter:'Nouvelle entrée', agenda:'Agenda', historique:'Historique', prospects:'Prospects', stats:'Statistiques', reglages:'Réglages'};
+const TABS = ['suivi','ajouter','agenda','historique','prospects','stats','reglages'];
 
 let clients = [];
 let calls = [], primes = [];
@@ -868,11 +876,12 @@ function setTab(t){
     $('view-'+k).classList.toggle('hide', k !== t);
   });
   $('screen-title').textContent = TITLES[t];
-  $('filter').classList.toggle('hide', t !== 'suivi' && t !== 'historique' && t !== 'stats');
+  $('filter').classList.toggle('hide', t !== 'suivi' && t !== 'historique' && t !== 'stats' && t !== 'prospects');
   if (t === 'ajouter') renderClientButtons();
   if (t === 'reglages') renderClientsSettings();
   if (t === 'stats') renderCharts();
   if (t === 'agenda') { updateAgendaCardVisibility(); renderAgendaEvents(); }
+  if (t === 'prospects') renderProspectsTab();
 }
 
 function setFilter(f){
@@ -881,6 +890,7 @@ function setFilter(f){
   $('scope').textContent = f === 'tous' ? 'Tous les infopreneurs' : clientName(f);
   render();
   if (tab === 'stats') renderCharts();
+  if (tab === 'prospects') renderProspectsTab();
 }
 
 function renderFilterChips(){
@@ -1185,6 +1195,7 @@ function render(){
         </div>
       </div>`).join('');
 
+  if (tab === 'prospects') renderProspectsTab();
   if (currentProspectKey && !$('prospect-modal').classList.contains('hide')) renderProspectCard();
 }
 
@@ -1281,7 +1292,8 @@ function addCall(){
     suiviTime: callResult === 'suivi' ? (suiviTimeVal || '') : '',
     objection: objectionVal,
     objectionDetail: objectionVal === 'autre' ? $('objection-autre').value.trim() : '',
-    notes: $('call-notes').value.trim()
+    notes: $('call-notes').value.trim(),
+    recordingUrl: $('call-recording-link').value.trim()
   };
   if (editingCallId) {
     const idx = calls.findIndex(c => c.id === editingCallId);
@@ -1296,6 +1308,7 @@ function addCall(){
   $('prospect').value = ''; $('commission').value = ''; $('call-date').value = today(); $('suivi-date').value = today(); $('suivi-time').value = '';
   $('objection').value = ''; $('objection-autre').value = ''; $('objection-autre-field').classList.add('hide');
   $('call-notes').value = '';
+  $('call-recording-link').value = '';
   $('duplicate-warning').classList.add('hide');
   selectedOfferId = null; selectedOfferName = null;
   setCallClient(null); setResult(null);
@@ -1326,6 +1339,7 @@ function editCall(id){
   onObjectionChange();
   if (c.objection === 'autre') $('objection-autre').value = c.objectionDetail || '';
   $('call-notes').value = c.notes || '';
+  $('call-recording-link').value = c.recordingUrl || '';
   checkDuplicateProspect();
   $('edit-call-banner').style.display = 'flex';
   $('call-submit-btn').textContent = 'Enregistrer les modifications';
@@ -1338,6 +1352,7 @@ function cancelEditCall(){
   $('prospect').value = ''; $('commission').value = ''; $('call-date').value = today(); $('suivi-date').value = today(); $('suivi-time').value = '';
   $('objection').value = ''; $('objection-autre').value = ''; $('objection-autre-field').classList.add('hide');
   $('call-notes').value = '';
+  $('call-recording-link').value = '';
   $('duplicate-warning').classList.add('hide');
   selectedOfferId = null; selectedOfferName = null;
   setCallClient(null); setResult(null);
@@ -1413,41 +1428,44 @@ function closeProspectCard(){
   currentProspectName = '';
 }
 
-function renderProspectSearchResults(){
-  const input = $('prospect-search-input');
-  const results = $('prospect-search-results');
-  if (!input || !results) return;
-  const q = input.value.trim().toLowerCase();
-  if (!q) { results.classList.add('hide'); results.innerHTML = ''; return; }
+function renderProspectsTab(){
+  const listEl = $('prospects-list');
+  if (!listEl) return;
+  const q = ($('prospects-search') ? $('prospects-search').value.trim().toLowerCase() : '');
 
   const byKey = new Map();
   const counts = {};
-  calls.forEach(c => {
+  scoped(calls).forEach(c => {
     const key = prospectKey(c.clientId, c.prospect);
     counts[key] = (counts[key] || 0) + 1;
     const existing = byKey.get(key);
-    if (!existing || String(c.date) > String(existing.date)) {
-      byKey.set(key, { id: c.id, clientId: c.clientId, prospect: c.prospect, date: c.date });
+    if (!existing || String(c.date) > String(existing.date) || (String(c.date) === String(existing.date) && String(c.id) > String(existing.id))) {
+      byKey.set(key, { id: c.id, clientId: c.clientId, prospect: c.prospect, date: c.date, result: c.result });
     }
   });
 
   const matches = [...byKey.entries()]
-    .filter(([, v]) => String(v.prospect || '').toLowerCase().includes(q))
+    .filter(([, v]) => !q || String(v.prospect || '').toLowerCase().includes(q))
     .map(([key, v]) => ({ ...v, count: counts[key] }))
-    .sort((a, b) => String(b.date).localeCompare(String(a.date)))
-    .slice(0, 8);
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
 
-  results.classList.remove('hide');
-  results.innerHTML = matches.length === 0
-    ? '<div class="note" style="padding:6px 0">Aucun prospect trouvé.</div>'
-    : matches.map(m => `
-      <div class="item clickable" onclick="$('prospect-search-input').value='';renderProspectSearchResults();openProspectCardByCallId('${m.id}')">
+  listEl.innerHTML = matches.length === 0
+    ? '<div class="empty">' + (q ? 'Aucun prospect trouvé.' : 'Aucun prospect enregistré pour l\'instant.') + '</div>'
+    : matches.map(m => {
+        const label = m.result === 'closed' ? 'Closé' : (m.result === 'noshow' ? 'Absent' : (m.result === 'suivi' ? 'Suivi prévu' : 'Perdu'));
+        const cls = m.result === 'closed' ? 'closed' : (m.result === 'noshow' ? 'noshow' : (m.result === 'suivi' ? 'suivi' : 'perdu'));
+        return `
+      <div class="item clickable" onclick="openProspectCardByCallId('${m.id}')">
         <div class="l">
           <div class="name-row"><span class="name">${esc(m.prospect)}</span><span class="tag">${esc(clientName(m.clientId))}</span></div>
           <div class="meta"><span>${m.count} call${m.count > 1 ? 's' : ''} · dernier le ${fmtDate(m.date)}</span></div>
         </div>
-        <div class="r"><span class="chev">›</span></div>
-      </div>`).join('');
+        <div class="r">
+          <span class="status ${cls}">${label}</span>
+          <span class="chev">›</span>
+        </div>
+      </div>`;
+      }).join('');
 }
 
 function openPaymentsModal(){
@@ -1628,10 +1646,12 @@ function renderProspectCard(){
     if (c.result === 'suivi' && c.suiviDate) details.push('Call prévu le ' + fmtSuiviWhen(c));
     const obj = objectionLabel(c);
     if (obj) details.push('Objection : ' + obj);
+    const hasLink = c.recordingUrl && /^https?:\/\//i.test(c.recordingUrl);
     return `<div class="timeline-item">
       <div class="trow"><span class="tdate">${fmtDate(c.date)}</span><span class="status ${cls}">${label}</span></div>
       ${details.length ? '<div class="tdetail">' + details.join(' · ') + '</div>' : ''}
       ${c.notes ? '<div class="tdetail" style="margin-top:4px;font-style:italic">' + esc(c.notes) + '</div>' : ''}
+      ${hasLink ? '<div class="tdetail" style="margin-top:4px"><a href="' + esc(c.recordingUrl) + '" target="_blank" rel="noopener noreferrer" class="inline-link">🎥 Voir l\'enregistrement de l\'appel →</a></div>' : ''}
       <div style="display:flex;gap:12px;margin-top:7px">
         <button class="tdel" onclick="editCall('${c.id}')">Modifier</button>
         <button class="tdel" onclick="deleteCallFromCard('${c.id}')">Supprimer ce call</button>
@@ -2295,13 +2315,13 @@ function csvEscape(v){
 }
 
 function exportCSV(){
-  const rows = [['Type','Date','Infopreneur','Prospect / Libellé','Résultat','Montant (€)','Offre','Objection','Date de suivi','Notes']];
+  const rows = [['Type','Date','Infopreneur','Prospect / Libellé','Résultat','Montant (€)','Offre','Objection','Date de suivi','Notes','Lien enregistrement']];
   calls.slice().sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(c => {
     const statusLabel = c.result === 'closed' ? 'Closé' : (c.result === 'noshow' ? 'Absent' : (c.result === 'suivi' ? 'Suivi prévu' : 'Perdu'));
-    rows.push(['Call', c.date, clientName(c.clientId), c.prospect || '', statusLabel, c.result === 'closed' ? (c.commission || 0) : '', c.offerName || '', objectionLabel(c) || '', (c.suiviDate || '') + (c.suiviTime ? ' ' + c.suiviTime : ''), c.notes || '']);
+    rows.push(['Call', c.date, clientName(c.clientId), c.prospect || '', statusLabel, c.result === 'closed' ? (c.commission || 0) : '', c.offerName || '', objectionLabel(c) || '', (c.suiviDate || '') + (c.suiviTime ? ' ' + c.suiviTime : ''), c.notes || '', c.recordingUrl || '']);
   });
   primes.slice().sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(p => {
-    rows.push(['Prime', p.date, clientName(p.clientId), p.label || '', '', p.montant || 0, '', '', '', '']);
+    rows.push(['Prime', p.date, clientName(p.clientId), p.label || '', '', p.montant || 0, '', '', '', '', '']);
   });
   const csv = rows.map(r => r.map(csvEscape).join(';')).join('\r\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
