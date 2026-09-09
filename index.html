@@ -591,11 +591,7 @@
 
     <div class="card">
       <div class="cap">Google Agenda</div>
-      <div class="note" style="margin-top:8px">Pour voir tes prochains rendez-vous directement dans l'onglet Ajouter. Nécessite un identifiant OAuth Google (gratuit, à créer une fois dans Google Cloud Console).</div>
-      <div class="inline-edit" style="margin-top:10px">
-        <input type="text" id="google-client-id" placeholder="xxxxx.apps.googleusercontent.com">
-        <button type="button" onclick="saveGoogleClientId()">Enregistrer</button>
-      </div>
+      <div class="note" style="margin-top:8px">Connecte ton compte Google depuis l'onglet Agenda pour voir tes prochains rendez-vous directement dans l'appli.</div>
     </div>
 
     <div class="card">
@@ -611,7 +607,7 @@
 
     <div class="card">
       <div class="cap">Sauvegarde cloud (Google Drive)</div>
-      <div class="note" style="margin-top:8px" id="drive-not-configured">Utilise le même identifiant OAuth Google que pour l'Agenda (renseigné ci-dessus). Une fois connecté, tes données sont sauvegardées dans un fichier privé sur ton Drive, accessible uniquement par cette appli.</div>
+      <div class="note" style="margin-top:8px" id="drive-not-configured">Connecte ton compte Google ci-dessous. Une fois connecté, tes données sont sauvegardées dans un fichier privé sur ton Drive, accessible uniquement par cette appli.</div>
       <div id="drive-connected-block" class="hide" style="margin-top:10px">
         <div class="note" id="drive-status">Non connecté.</div>
         <div style="display:flex;gap:8px;margin-top:10px">
@@ -2448,25 +2444,15 @@ function importData(input){
   reader.readAsText(file);
 }
 
-const GOOGLE_CLIENT_ID_KEY = 'closing-google-client-id';
+// Identifiant OAuth Google partagé par l'application : un seul projet Google Cloud
+// (créé et géré par l'auteur de l'app) sert à connecter Agenda/Drive pour tous les utilisateurs.
+const GOOGLE_CLIENT_ID = '788705143316-273a28teuqcuogu9kr5avrp4pboitt1q.apps.googleusercontent.com';
 let gisTokenClient = null;
 let googleAccessToken = null;
 let upcomingAgendaEvents = [];
 let pastAgendaEvents = [];
 let agendaFilter = 'upcoming';
 let dismissedAgendaEvents = [];
-
-function saveGoogleClientId(){
-  const val = $('google-client-id').value.trim();
-  localStorage.setItem(GOOGLE_CLIENT_ID_KEY, val);
-  gisTokenClient = null; googleAccessToken = null;
-  driveTokenClient = null; driveAccessToken = null;
-  updateAgendaCardVisibility();
-  updateDriveCardVisibility();
-  const msg = $('saved');
-  msg.style.display = 'block';
-  setTimeout(() => { msg.style.display = 'none'; }, 2200);
-}
 
 function toggleDarkMode(on){
   document.body.classList.toggle('dark', on);
@@ -2475,11 +2461,10 @@ function toggleDarkMode(on){
 }
 
 function updateAgendaCardVisibility(){
-  const clientId = localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
-  $('agenda-not-configured').classList.toggle('hide', !!clientId);
-  $('agenda-connect-card').classList.toggle('hide', !clientId);
-  $('agenda-subfilter').classList.toggle('hide', !clientId);
-  $('agenda-list-card').classList.toggle('hide', !clientId);
+  $('agenda-not-configured').classList.add('hide');
+  $('agenda-connect-card').classList.remove('hide');
+  $('agenda-subfilter').classList.remove('hide');
+  $('agenda-list-card').classList.remove('hide');
 }
 
 function setAgendaFilter(f){
@@ -2489,10 +2474,9 @@ function setAgendaFilter(f){
 }
 
 function initGoogleAuth(){
-  const clientId = localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
-  if (!clientId || !window.google || !window.google.accounts || !window.google.accounts.oauth2) return false;
+  if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) return false;
   gisTokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: clientId,
+    client_id: GOOGLE_CLIENT_ID,
     scope: 'https://www.googleapis.com/auth/calendar.readonly',
     callback: (resp) => {
       if (resp && resp.access_token) {
@@ -2509,7 +2493,7 @@ function initGoogleAuth(){
 
 function connectGoogleCalendar(){
   if (!gisTokenClient && !initGoogleAuth()) {
-    $('agenda-events').innerHTML = '<div class="note">Google met un instant à se charger — réessaie dans quelques secondes, ou vérifie ton identifiant dans Réglages.</div>';
+    $('agenda-events').innerHTML = '<div class="note">Google met un instant à se charger — réessaie dans quelques secondes.</div>';
     return;
   }
   $('agenda-events').innerHTML = '<div class="note">Connexion…</div>';
@@ -2567,9 +2551,7 @@ let driveBackupFileId = null;
 let driveAutoBackupTimer = null;
 
 function updateDriveCardVisibility(){
-  const clientId = localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
-  $('drive-not-configured').classList.toggle('hide', !!clientId);
-  $('drive-connect-btn').classList.toggle('hide', !clientId || !!driveAccessToken);
+  $('drive-connect-btn').classList.toggle('hide', !!driveAccessToken);
   $('drive-connected-block').classList.toggle('hide', !driveAccessToken);
   if (driveAccessToken) updateDriveStatusText();
 }
@@ -2582,10 +2564,9 @@ function updateDriveStatusText(){
 }
 
 function initGoogleDriveAuth(){
-  const clientId = localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
-  if (!clientId || !window.google || !window.google.accounts || !window.google.accounts.oauth2) return false;
+  if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) return false;
   driveTokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: clientId,
+    client_id: GOOGLE_CLIENT_ID,
     scope: 'https://www.googleapis.com/auth/drive.file',
     callback: (resp) => {
       if (resp && resp.access_token) {
@@ -2601,7 +2582,7 @@ function initGoogleDriveAuth(){
 
 function connectGoogleDrive(){
   if (!driveTokenClient && !initGoogleDriveAuth()) {
-    alert('Google met un instant à se charger — réessaie dans quelques secondes, ou vérifie ton identifiant OAuth dans Réglages (section Google Agenda).');
+    alert('Google met un instant à se charger — réessaie dans quelques secondes.');
     return;
   }
   driveTokenClient.requestAccessToken({ prompt: driveAccessToken ? '' : 'consent' });
@@ -2918,7 +2899,6 @@ function init(){
   $('call-date').value = today();
   $('prime-date').value = today();
   $('suivi-date').value = today();
-  $('google-client-id').value = localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || '';
   document.body.classList.toggle('dark', localStorage.getItem('closing-dark-mode') === '1');
   $('dark-mode-toggle').checked = localStorage.getItem('closing-dark-mode') === '1';
   $('drive-autobackup-toggle').checked = localStorage.getItem('closing-drive-autobackup') === '1';
