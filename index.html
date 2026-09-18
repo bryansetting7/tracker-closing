@@ -51,6 +51,7 @@
   .cap{font-weight:600;font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#8a8880}
   .hero{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:40px;line-height:1;letter-spacing:-2px;margin-top:12px}
   .split{display:flex;gap:18px;margin-top:16px;padding-top:14px;border-top:1px solid #efede8}
+  .cmp-objectif-note{margin-top:12px;padding-top:12px;border-top:1px solid #efede8}
   .split .col{display:flex;flex-direction:column;gap:3px;min-width:0}
   .split .k{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:#8a8880}
   .split .v{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:14px;color:#1c8a53}
@@ -159,6 +160,13 @@
   .chart-empty{text-align:center;padding:36px 16px;font-size:13px;line-height:1.5;color:#a8a59e;border:1px dashed #e6e3dd;border-radius:14px;margin-top:14px}
   .chart-empty .t{display:block;font-weight:600;font-size:13.5px;color:#5f5e58;margin-bottom:4px}
   #print-meta{display:none}
+  .lock-overlay{position:fixed;inset:0;background:#f7f6f3;display:flex;align-items:center;justify-content:center;z-index:200;padding:20px}
+  .lock-card{width:100%;max-width:340px;text-align:center}
+  .lock-title{font-size:19px;font-weight:600;letter-spacing:-.3px;margin-bottom:6px}
+  .lock-sub{font-size:13px;color:#8a8880;margin-bottom:18px}
+  #lock-pin-input{width:100%;text-align:center;font-size:28px;letter-spacing:14px;padding:14px 12px;border:1px solid #e6e3dd;border-radius:12px;font-family:'IBM Plex Mono',monospace;background:#fff}
+  #lock-unlock-btn{width:100%;margin-top:14px}
+  #lock-error{display:none}
   .modal-overlay{position:fixed;inset:0;background:rgba(22,24,27,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50}
   .modal-card{background:#fff;border-radius:22px 22px 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:22px 20px calc(22px + env(safe-area-inset-bottom))}
   .modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
@@ -196,10 +204,10 @@
     .tabbar .dot{width:6px;height:6px;border-radius:50%}
     #view-ajouter,#view-historique,#view-reglages{max-width:600px;margin:0 auto}
     .stack.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
-    .stack.grid2>.card:first-of-type,.stack.grid2 .duo,.stack.grid2>#export-pdf-btn,.stack.grid2>#stats-period-card,.stack.grid2>#cmp-card{grid-column:1/-1}
+    .stack.grid2>.card:first-of-type,.stack.grid2 .duo,.stack.grid2>#stats-export-row,.stack.grid2>#stats-period-card,.stack.grid2>#cmp-card{grid-column:1/-1}
   }
   @media print{
-    .tabbar,.seg,#export-pdf-btn,#stats-period-card{display:none!important}
+    .tabbar,.seg,#stats-export-row,#stats-period-card{display:none!important}
     body{background:#fff}
     .head{position:static;border-bottom:none;padding:0 0 14px}
     main{overflow:visible;padding:0}
@@ -208,6 +216,9 @@
     #print-meta{display:block!important;margin-bottom:16px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f5e58}
   }
   body.dark,body.dark html{background:#15161a}
+  body.dark .lock-overlay{background:#15161a}
+  body.dark .lock-sub{color:#8d8b86}
+  body.dark #lock-pin-input{background:#212227;border-color:#33343a;color:#eceae4}
   body.dark{color:#eceae4}
   body.dark .head{background:#15161a;border-color:#2a2b30}
   body.dark .eyebrow,body.dark .scope,body.dark .cap,body.dark .of,body.dark .sub,body.dark .note,body.dark .split .k,body.dark .modal-summary .k,body.dark .field label{color:#8d8b86}
@@ -216,6 +227,7 @@
   body.dark .seg button.on{background:#2c2d33;color:#eceae4}
   body.dark .card,body.dark .list,body.dark .modal-card{background:#1c1d22;border-color:#2a2b30}
   body.dark .split{border-color:#2a2b30}
+  body.dark .cmp-objectif-note{border-color:#2a2b30}
   body.dark .split .sep{background:#2a2b30}
   body.dark .bar{background:#2a2b30}
   body.dark .detail{color:#b3b1ab}
@@ -277,6 +289,25 @@
 </style>
 </head>
 <body>
+
+<div class="lock-overlay hide" id="lock-overlay">
+  <div class="lock-card">
+    <div class="lock-title">Tracker de closing verrouillé</div>
+    <div class="lock-sub">Entre ton code à 4 chiffres</div>
+    <input type="password" id="lock-pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="••••" onkeydown="if(event.key==='Enter') tryUnlockApp()">
+    <button type="button" class="btn" id="lock-unlock-btn" onclick="tryUnlockApp()">Déverrouiller</button>
+    <div class="err" id="lock-error" style="margin-top:10px">Code incorrect.</div>
+  </div>
+</div>
+<script>
+(function(){
+  try {
+    if (localStorage.getItem('closing-pin-hash-v1') && sessionStorage.getItem('closing-unlocked') !== '1') {
+      document.getElementById('lock-overlay').classList.remove('hide');
+    }
+  } catch (e) {}
+})();
+</script>
 
 <div class="head">
   <div class="top">
@@ -524,7 +555,10 @@
   <!-- STATS -->
   <section id="view-stats" class="stack grid2 hide">
     <div id="print-meta"></div>
-    <button type="button" class="btn ghost" id="export-pdf-btn" onclick="exportPdf()">Exporter en PDF</button>
+    <div id="stats-export-row" style="display:flex;gap:8px">
+      <button type="button" class="btn ghost" id="export-pdf-btn" style="flex:1" onclick="exportPdf()">Exporter en PDF</button>
+      <button type="button" class="btn ghost" id="export-stats-csv-btn" style="flex:1" onclick="exportStatsCSV()">Exporter en CSV</button>
+    </div>
     <div class="card" id="stats-period-card">
       <div class="cap-row"><div class="cap">Période</div></div>
       <div class="seg" id="stats-period-seg" style="margin-top:10px">
@@ -561,6 +595,7 @@
           <span class="sub" id="cmp-noshow-delta">—</span>
         </div>
       </div>
+      <div class="note hide cmp-objectif-note" id="cmp-yearly-objectif"></div>
     </div>
     <div class="card" data-card-id="revenu">
       <div class="cap-row"><div class="cap">Revenu par mois</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
@@ -622,13 +657,14 @@
         <button type="button" class="btn ghost" style="flex:1" onclick="exportData()">Exporter (JSON)</button>
         <button type="button" class="btn ghost" style="flex:1" onclick="triggerImport()">Importer</button>
       </div>
-      <button type="button" class="btn ghost" style="width:100%;margin-top:8px" onclick="exportCSV()">Exporter en CSV (Excel/Sheets)</button>
+      <button type="button" class="btn ghost" style="width:100%;margin-top:8px" onclick="exportCSV()">Exporter en CSV — toutes les données (Excel/Sheets)</button>
+      <div class="note" style="margin-top:6px">Pour un CSV limité à un infopreneur ou une période précise, utilise le bouton "Exporter en CSV" dans l'onglet Stats.</div>
       <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(this)">
     </div>
 
     <div class="card">
       <div class="cap">Sauvegarde cloud (Google Drive)</div>
-      <div class="note" style="margin-top:8px" id="drive-not-configured">Connecte ton compte Google ci-dessous. Une fois connecté, tes données sont sauvegardées dans un fichier privé sur ton Drive, accessible uniquement par cette appli.</div>
+      <div class="note" style="margin-top:8px" id="drive-not-configured">Connecte ton compte Google ci-dessous. Une fois connecté, tes données sont sauvegardées dans un fichier privé sur ton Drive, accessible uniquement par cette appli. L'appli s'y reconnecte ensuite automatiquement à chaque ouverture — même sur un nouvel appareil, si tu es connecté au même compte Google — sans avoir à cliquer sur «Restaurer».</div>
       <div id="drive-connected-block" class="hide" style="margin-top:10px">
         <div class="note" id="drive-status">Non connecté.</div>
         <div style="display:flex;gap:8px;margin-top:10px">
@@ -650,6 +686,27 @@
         Mode sombre
       </label>
       <button type="button" class="btn ghost" style="margin-top:12px" onclick="resetStatsCardOrder()">Réinitialiser l'ordre des cartes Stats</button>
+    </div>
+
+    <div class="card" id="security-card">
+      <div class="cap">Sécurité</div>
+      <div id="security-no-pin">
+        <div class="note" style="margin-top:8px">Protège l'appli avec un code à 4 chiffres, demandé à chaque ouverture (utile si ton téléphone est partagé, perdu ou volé — l'appli contient les coordonnées de tes prospects et tes commissions).</div>
+        <input type="password" id="new-pin-1" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Nouveau code (4 chiffres)" style="margin-top:10px">
+        <input type="password" id="new-pin-2" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Confirmer le code" style="margin-top:8px">
+        <button type="button" class="btn ghost" style="width:100%;margin-top:10px" onclick="activatePin()">Activer le verrouillage</button>
+        <div class="err" id="pin-setup-err" style="margin-top:10px">Les deux codes doivent être identiques et contenir 4 chiffres.</div>
+      </div>
+      <div id="security-has-pin" class="hide">
+        <div class="note" style="margin-top:8px">Verrouillage activé — le code est demandé à chaque ouverture de l'appli.</div>
+        <button type="button" class="btn ghost" style="width:100%;margin-top:10px" onclick="lockAppNow()">Verrouiller maintenant</button>
+        <button type="button" class="btn ghost" style="width:100%;margin-top:8px" onclick="toggleDisablePinForm()">Désactiver le verrouillage</button>
+        <div id="disable-pin-form" class="hide" style="margin-top:10px">
+          <input type="password" id="current-pin-confirm" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Code actuel">
+          <button type="button" class="btn ghost" style="width:100%;margin-top:8px" onclick="deactivatePin()">Confirmer la désactivation</button>
+          <div class="err" id="pin-disable-err" style="margin-top:8px">Code incorrect.</div>
+        </div>
+      </div>
     </div>
 
     <div class="ok" id="saved">Mis à jour.</div>
@@ -723,7 +780,7 @@
 </div>
 
 <script>
-const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1', prospectTags:'closing-prospect-tags-v1', prospectInfo:'closing-prospect-info-v1', dismissedAgendaEvents:'closing-agenda-dismissed-v1', statsCardOrder:'closing-stats-order-v1', statsPeriod:'closing-stats-period-v1'};
+const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1', yearlyObjectifs:'closing-yearly-objectifs-v1', prospectTags:'closing-prospect-tags-v1', prospectInfo:'closing-prospect-info-v1', dismissedAgendaEvents:'closing-agenda-dismissed-v1', statsCardOrder:'closing-stats-order-v1', statsPeriod:'closing-stats-period-v1'};
 const LAST_EXPORT_KEY = 'closing-last-export';
 const EXPORT_REMINDER_DAYS = 7;
 
@@ -825,6 +882,7 @@ let calls = [], primes = [];
 let objectifs = {};
 let offers = {};
 let weeklyObjectifs = {};
+let yearlyObjectifs = {};
 let prospectTags = {};
 let prospectInfo = {};
 let tab = 'suivi', filter = 'tous', mode = 'call', statusFilter = 'tous';
@@ -1791,6 +1849,7 @@ function deleteClient(id){
   clients = clients.filter(c => c.id !== id);
   delete objectifs[id];
   delete weeklyObjectifs[id];
+  delete yearlyObjectifs[id];
   delete offers[id];
   if (cascade) {
     calls = calls.filter(c => c.clientId !== id);
@@ -1801,6 +1860,7 @@ function deleteClient(id){
   persist(KEYS.clients, clients);
   persist(KEYS.objectifs, objectifs);
   persist(KEYS.weeklyObjectifs, weeklyObjectifs);
+  persist(KEYS.yearlyObjectifs, yearlyObjectifs);
   persist(KEYS.offers, offers);
   if (filter === id) { filter = 'tous'; $('scope').textContent = 'Tous les infopreneurs'; }
   renderClientsSettings();
@@ -1827,6 +1887,19 @@ function saveClientWeeklyObjectif(id){
   weeklyObjectifs[id] = val;
   persist(KEYS.weeklyObjectifs, weeklyObjectifs);
   render();
+  const msg = $('saved');
+  msg.style.display = 'block';
+  setTimeout(() => { msg.style.display = 'none'; }, 2200);
+}
+
+function saveClientYearlyObjectif(id){
+  const input = $('obj-year-input-' + id);
+  const val = parseFloat(input.value);
+  if (!val || val <= 0) { input.focus(); return; }
+  yearlyObjectifs[id] = val;
+  persist(KEYS.yearlyObjectifs, yearlyObjectifs);
+  render();
+  if (tab === 'stats') renderCharts();
   const msg = $('saved');
   msg.style.display = 'block';
   setTimeout(() => { msg.style.display = 'none'; }, 2200);
@@ -1883,6 +1956,7 @@ function renderClientsSettings(){
           <div class="cname">${esc(c.name)}</div>
           <div class="cobj">Objectif mensuel : ${euros(objectifs[c.id] || 0)}</div>
           <div class="cobj">Objectif hebdo : ${euros(weeklyObjectifs[c.id] || 0)}</div>
+          <div class="cobj">Objectif annuel : ${euros(yearlyObjectifs[c.id] || 0)}</div>
         </div>
         <button class="del" aria-label="Supprimer" onclick="deleteClient('${c.id}')">✕</button>
       </div>
@@ -1893,6 +1967,10 @@ function renderClientsSettings(){
       <div class="inline-edit">
         <input type="number" id="obj-week-input-${c.id}" min="0" step="1" placeholder="750 (hebdo)" value="${weeklyObjectifs[c.id] || ''}">
         <button type="button" onclick="saveClientWeeklyObjectif('${c.id}')">Enregistrer</button>
+      </div>
+      <div class="inline-edit">
+        <input type="number" id="obj-year-input-${c.id}" min="0" step="1" placeholder="30000 (annuel)" value="${yearlyObjectifs[c.id] || ''}">
+        <button type="button" onclick="saveClientYearlyObjectif('${c.id}')">Enregistrer</button>
       </div>
 
       <div style="margin-top:14px;padding-top:12px;border-top:1px solid #f1efea">
@@ -2475,6 +2553,27 @@ function renderComparison(){
   $('cmp-rate-cur').textContent = cur.rate + '%';
   $('cmp-noshow-cur').textContent = cur.noshow + '%';
 
+  const yearlyObjEl = $('cmp-yearly-objectif');
+  if (yearlyObjEl) {
+    if (info.mode === 'year') {
+      const objectifYear = filter === 'tous'
+        ? clients.reduce((a,c) => a + (yearlyObjectifs[c.id] || 0), 0)
+        : (yearlyObjectifs[filter] || 0);
+      if (objectifYear <= 0) {
+        yearlyObjEl.textContent = 'Définis un objectif annuel dans Réglages pour suivre ta progression sur ' + info.curLabel + '.';
+      } else {
+        const remainingYear = Math.max(objectifYear - cur.ca, 0);
+        const pctYear = Math.min(100, Math.round(cur.ca / objectifYear * 100));
+        yearlyObjEl.textContent = remainingYear === 0
+          ? 'Objectif annuel de ' + euros(objectifYear) + ' atteint pour ' + info.curLabel + ' 🎉'
+          : 'Objectif annuel : ' + euros(cur.ca) + ' / ' + euros(objectifYear) + ' (' + pctYear + '%) — il reste ' + euros(remainingYear) + '.';
+      }
+      yearlyObjEl.classList.remove('hide');
+    } else {
+      yearlyObjEl.classList.add('hide');
+    }
+  }
+
   const caDeltaEl = $('cmp-ca-delta');
   const rateDeltaEl = $('cmp-rate-delta');
   const noshowDeltaEl = $('cmp-noshow-delta');
@@ -2519,7 +2618,7 @@ function exportData(){
     version: 1,
     exportedAt: new Date().toISOString(),
     clients: clients, calls: calls, primes: primes,
-    objectifs: objectifs, offers: offers, weeklyObjectifs: weeklyObjectifs
+    objectifs: objectifs, offers: offers, weeklyObjectifs: weeklyObjectifs, yearlyObjectifs: yearlyObjectifs
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -2539,25 +2638,50 @@ function csvEscape(v){
   return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
-function exportCSV(){
+function buildCsvRows(callsList, primesList){
   const rows = [['Type','Date','Infopreneur','Prospect / Libellé','Résultat','Montant (€)','Offre','Objection','Date de suivi','Notes','Lien enregistrement']];
-  calls.slice().sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(c => {
+  callsList.slice().sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(c => {
     const statusLabel = c.result === 'closed' ? 'Closé' : (c.result === 'noshow' ? 'Absent' : (c.result === 'suivi' ? 'Suivi prévu' : 'Perdu'));
     rows.push(['Call', c.date, clientName(c.clientId), c.prospect || '', statusLabel, c.result === 'closed' ? (c.commission || 0) : '', c.offerName || '', objectionLabel(c) || '', (c.suiviDate || '') + (c.suiviTime ? ' ' + c.suiviTime : ''), c.notes || '', getCallLinks(c).join(' | ')]);
   });
-  primes.slice().sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(p => {
+  primesList.slice().sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(p => {
     rows.push(['Prime', p.date, clientName(p.clientId), p.label || '', '', p.montant || 0, '', '', '', '', '']);
   });
+  return rows;
+}
+
+function downloadCsv(rows, filename){
   const csv = rows.map(r => r.map(csvEscape).join(';')).join('\r\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'closing-tracker-' + today() + '.csv';
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function slugify(s){
+  return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'export';
+}
+
+function exportCSV(){
+  const rows = buildCsvRows(calls, primes);
+  downloadCsv(rows, 'closing-tracker-' + today() + '.csv');
+  localStorage.setItem(LAST_EXPORT_KEY, Date.now().toString());
+  checkExportReminder();
+}
+
+function exportStatsCSV(){
+  const info = getStatsPeriodInfo();
+  const cs = scoped(calls).filter(c => info.curPred(c.date));
+  const ps = scoped(primes).filter(p => info.curPred(p.date));
+  const rows = buildCsvRows(cs, ps);
+  const scopeLabel = filter === 'tous' ? 'tous' : slugify(clientName(filter));
+  const periodLabel = info.mode === 'thismonth' ? 'ce-mois' : slugify(info.curLabel);
+  downloadCsv(rows, 'closing-tracker-' + scopeLabel + '-' + periodLabel + '-' + today() + '.csv');
   localStorage.setItem(LAST_EXPORT_KEY, Date.now().toString());
   checkExportReminder();
 }
@@ -2566,12 +2690,12 @@ function triggerImport(){
   $('import-file').click();
 }
 
-function applyImportedPayload(data, sourceLabel){
+function applyImportedPayload(data, sourceLabel, skipConfirm){
   if (!data || typeof data !== 'object' || !Array.isArray(data.clients) || !Array.isArray(data.calls)) {
     alert('Fichier invalide : structure inattendue.');
     return false;
   }
-  if (!confirm(`Importer ${sourceLabel} va remplacer toutes les données actuelles de l'appli (infopreneurs, calls, primes, objectifs, offres). Continuer ?`)) {
+  if (!skipConfirm && !confirm(`Importer ${sourceLabel} va remplacer toutes les données actuelles de l'appli (infopreneurs, calls, primes, objectifs, offres). Continuer ?`)) {
     return false;
   }
   clients = data.clients || [];
@@ -2580,12 +2704,14 @@ function applyImportedPayload(data, sourceLabel){
   objectifs = data.objectifs || {};
   offers = data.offers || {};
   weeklyObjectifs = data.weeklyObjectifs || {};
+  yearlyObjectifs = data.yearlyObjectifs || {};
   persist(KEYS.clients, clients);
   persist(KEYS.calls, calls);
   persist(KEYS.primes, primes);
   persist(KEYS.objectifs, objectifs);
   persist(KEYS.offers, offers);
   persist(KEYS.weeklyObjectifs, weeklyObjectifs);
+  persist(KEYS.yearlyObjectifs, yearlyObjectifs);
   localStorage.setItem(LAST_EXPORT_KEY, Date.now().toString());
   renderFilterChips(); renderClientsSettings(); render();
   if (tab === 'stats') renderCharts();
@@ -2629,6 +2755,121 @@ function toggleDarkMode(on){
   document.body.classList.toggle('dark', on);
   localStorage.setItem('closing-dark-mode', on ? '1' : '0');
   if (tab === 'stats') renderCharts();
+}
+
+const PIN_HASH_KEY = 'closing-pin-hash-v1';
+const PIN_UNLOCK_KEY = 'closing-unlocked';
+
+async function hashPin(pin){
+  try {
+    const enc = new TextEncoder().encode('closing-tracker-pin::' + pin);
+    const digest = await crypto.subtle.digest('SHA-256', enc);
+    return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) {
+    let h = 0;
+    const s = 'closing-tracker-pin::' + pin;
+    for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
+    return 'fallback:' + h;
+  }
+}
+
+function isPinSet(){
+  return !!localStorage.getItem(PIN_HASH_KEY);
+}
+
+function isAppUnlocked(){
+  return sessionStorage.getItem(PIN_UNLOCK_KEY) === '1';
+}
+
+function showLockScreenIfNeeded(){
+  if (isPinSet() && !isAppUnlocked()) {
+    $('lock-overlay').classList.remove('hide');
+    $('lock-pin-input').value = '';
+    $('lock-error').style.display = 'none';
+    setTimeout(() => $('lock-pin-input').focus(), 50);
+  } else {
+    $('lock-overlay').classList.add('hide');
+  }
+}
+
+async function tryUnlockApp(){
+  const input = $('lock-pin-input');
+  const pin = input.value.trim();
+  if (pin.length !== 4) {
+    $('lock-error').textContent = 'Entre les 4 chiffres du code.';
+    $('lock-error').style.display = 'block';
+    return;
+  }
+  const hash = await hashPin(pin);
+  if (hash === localStorage.getItem(PIN_HASH_KEY)) {
+    sessionStorage.setItem(PIN_UNLOCK_KEY, '1');
+    $('lock-overlay').classList.add('hide');
+    $('lock-error').style.display = 'none';
+    input.value = '';
+  } else {
+    $('lock-error').textContent = 'Code incorrect.';
+    $('lock-error').style.display = 'block';
+    input.value = '';
+    input.focus();
+  }
+}
+
+function lockAppNow(){
+  sessionStorage.removeItem(PIN_UNLOCK_KEY);
+  showLockScreenIfNeeded();
+}
+
+function renderSecurityCard(){
+  const hasPin = isPinSet();
+  $('security-no-pin').classList.toggle('hide', hasPin);
+  $('security-has-pin').classList.toggle('hide', !hasPin);
+  if (!hasPin) {
+    $('disable-pin-form').classList.add('hide');
+    $('pin-disable-err').style.display = 'none';
+  }
+}
+
+async function activatePin(){
+  const p1 = $('new-pin-1').value.trim();
+  const p2 = $('new-pin-2').value.trim();
+  const errEl = $('pin-setup-err');
+  if (!/^\d{4}$/.test(p1) || p1 !== p2) {
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+  localStorage.setItem(PIN_HASH_KEY, await hashPin(p1));
+  sessionStorage.setItem(PIN_UNLOCK_KEY, '1');
+  $('new-pin-1').value = ''; $('new-pin-2').value = '';
+  renderSecurityCard();
+  const msg = $('saved');
+  msg.style.display = 'block';
+  setTimeout(() => { msg.style.display = 'none'; }, 2200);
+}
+
+function toggleDisablePinForm(){
+  $('disable-pin-form').classList.toggle('hide');
+  $('pin-disable-err').style.display = 'none';
+  $('current-pin-confirm').value = '';
+}
+
+async function deactivatePin(){
+  const pin = $('current-pin-confirm').value.trim();
+  const errEl = $('pin-disable-err');
+  const hash = await hashPin(pin);
+  if (pin.length !== 4 || hash !== localStorage.getItem(PIN_HASH_KEY)) {
+    errEl.style.display = 'block';
+    return;
+  }
+  localStorage.removeItem(PIN_HASH_KEY);
+  sessionStorage.removeItem(PIN_UNLOCK_KEY);
+  $('current-pin-confirm').value = '';
+  $('disable-pin-form').classList.add('hide');
+  errEl.style.display = 'none';
+  renderSecurityCard();
+  const msg = $('saved');
+  msg.style.display = 'block';
+  setTimeout(() => { msg.style.display = 'none'; }, 2200);
 }
 
 function updateAgendaCardVisibility(){
@@ -2716,14 +2957,26 @@ async function fetchAgendaEvents(isSilentRetry){
 // --- Google Drive backup ---
 const DRIVE_BACKUP_FILENAME = 'closing-tracker-backup.json';
 const DRIVE_LAST_BACKUP_KEY = 'closing-drive-last-backup';
+const DRIVE_EVER_CONNECTED_KEY = 'closing-drive-ever-connected';
 let driveTokenClient = null;
 let driveAccessToken = null;
 let driveBackupFileId = null;
 let driveAutoBackupTimer = null;
 
+function markDriveEverConnected(){
+  try { localStorage.setItem(DRIVE_EVER_CONNECTED_KEY, '1'); } catch(e) {}
+}
+
+function isLocalDataEmpty(){
+  return clients.length === 0 && calls.length === 0 && primes.length === 0 &&
+    Object.keys(objectifs).length === 0 && Object.keys(weeklyObjectifs).length === 0 &&
+    Object.keys(yearlyObjectifs).length === 0;
+}
+
 function updateDriveCardVisibility(){
   $('drive-connect-btn').classList.toggle('hide', !!driveAccessToken);
   $('drive-connected-block').classList.toggle('hide', !driveAccessToken);
+  $('drive-not-configured').classList.toggle('hide', !!driveAccessToken);
   if (driveAccessToken) updateDriveStatusText();
 }
 
@@ -2742,6 +2995,7 @@ function initGoogleDriveAuth(){
     callback: (resp) => {
       if (resp && resp.access_token) {
         driveAccessToken = resp.access_token;
+        markDriveEverConnected();
         updateDriveCardVisibility();
       } else {
         $('drive-status').textContent = 'Connexion refusée ou annulée — réessaie.';
@@ -2768,6 +3022,7 @@ async function driveEnsureToken(){
       driveTokenClient.callback = originalClientCallback;
       if (resp && resp.access_token) {
         driveAccessToken = resp.access_token;
+        markDriveEverConnected();
         updateDriveCardVisibility();
         resolve(true);
       } else {
@@ -2776,6 +3031,34 @@ async function driveEnsureToken(){
     };
     driveTokenClient.requestAccessToken({ prompt: '' });
   });
+}
+
+function attemptAutoDriveReconnect(attempt){
+  attempt = attempt || 0;
+  if (driveAccessToken) return;
+  const everConnected = localStorage.getItem(DRIVE_EVER_CONNECTED_KEY) === '1';
+  const emptyDevice = isLocalDataEmpty();
+  if (!everConnected && !emptyDevice) return;
+  if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+    if (attempt < 25) setTimeout(() => attemptAutoDriveReconnect(attempt + 1), 200);
+    return;
+  }
+  if (!driveTokenClient && !initGoogleDriveAuth()) return;
+  const originalCallback = driveTokenClient.callback;
+  driveTokenClient.callback = (resp) => {
+    driveTokenClient.callback = originalCallback;
+    if (resp && resp.access_token) {
+      driveAccessToken = resp.access_token;
+      markDriveEverConnected();
+      updateDriveCardVisibility();
+      if (isLocalDataEmpty()) driveRestore(true);
+    }
+  };
+  try {
+    driveTokenClient.requestAccessToken({ prompt: '' });
+  } catch (e) {
+    driveTokenClient.callback = originalCallback;
+  }
 }
 
 async function driveFindBackupFile(){
@@ -2794,7 +3077,7 @@ function buildBackupPayload(){
     version: 1,
     exportedAt: new Date().toISOString(),
     clients: clients, calls: calls, primes: primes,
-    objectifs: objectifs, offers: offers, weeklyObjectifs: weeklyObjectifs
+    objectifs: objectifs, offers: offers, weeklyObjectifs: weeklyObjectifs, yearlyObjectifs: yearlyObjectifs
   };
 }
 
@@ -2857,27 +3140,30 @@ async function driveBackupNow(silent){
   }
 }
 
-async function driveRestore(){
+async function driveRestore(auto){
   if (!(await driveEnsureToken())) {
-    alert('Connecte-toi à Google Drive dans Réglages avant de restaurer.');
+    if (!auto) alert('Connecte-toi à Google Drive dans Réglages avant de restaurer.');
     return;
   }
-  $('drive-status').textContent = 'Recherche de la sauvegarde…';
+  if (!auto) $('drive-status').textContent = 'Recherche de la sauvegarde…';
   try {
     if (!driveBackupFileId) driveBackupFileId = await driveFindBackupFile();
     if (!driveBackupFileId) {
-      $('drive-status').textContent = 'Aucune sauvegarde trouvée sur ce Drive (avec cet identifiant OAuth — si tu as changé d\'identifiant depuis la sauvegarde, l\'app ne peut plus la voir).';
+      if (!auto) $('drive-status').textContent = 'Aucune sauvegarde trouvée sur ce Drive (avec cet identifiant OAuth — si tu as changé d\'identifiant depuis la sauvegarde, l\'app ne peut plus la voir).';
       return;
     }
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveBackupFileId}?alt=media`, {
       headers: { Authorization: 'Bearer ' + driveAccessToken }
     });
-    if (res.status === 401) { driveAccessToken = null; updateDriveCardVisibility(); alert('Session Drive expirée, reconnecte-toi.'); return; }
+    if (res.status === 401) { driveAccessToken = null; updateDriveCardVisibility(); if (!auto) alert('Session Drive expirée, reconnecte-toi.'); return; }
     if (!res.ok) { const detail = await driveErrorDetail(res); throw new Error('HTTP ' + res.status + (detail ? ' — ' + detail : '')); }
     let data;
     try { data = await res.json(); }
     catch (parseErr) { throw new Error('le fichier de sauvegarde sur Drive n\'est pas un JSON valide'); }
-    const ok = applyImportedPayload(data, 'la sauvegarde Google Drive');
+    // auto: this is a silent background restore into a device with no local data yet
+    // (checked by the caller), so skip the "this will overwrite everything" confirm —
+    // there is nothing to overwrite.
+    const ok = applyImportedPayload(data, 'la sauvegarde Google Drive', auto);
     updateDriveStatusText();
     if (ok) {
       const msg = $('saved');
@@ -2885,12 +3171,12 @@ async function driveRestore(){
       msg.textContent = 'Données restaurées depuis Drive.';
       msg.style.display = 'block';
       setTimeout(() => { msg.style.display = 'none'; msg.textContent = prevText; }, 2500);
-    } else {
+    } else if (!auto) {
       $('drive-status').textContent = 'Restauration annulée.';
     }
   } catch (e) {
     console.error('driveRestore error', e);
-    $('drive-status').textContent = 'Erreur pendant la restauration : ' + (e && e.message ? e.message : 'inconnue') + '.';
+    if (!auto) $('drive-status').textContent = 'Erreur pendant la restauration : ' + (e && e.message ? e.message : 'inconnue') + '.';
   }
 }
 
@@ -3064,6 +3350,7 @@ function init(){
   objectifs = read(KEYS.objectifs, {}) || {};
   offers = read(KEYS.offers, {}) || {};
   weeklyObjectifs = read(KEYS.weeklyObjectifs, {}) || {};
+  yearlyObjectifs = read(KEYS.yearlyObjectifs, {}) || {};
   prospectTags = read(KEYS.prospectTags, {}) || {};
   prospectInfo = read(KEYS.prospectInfo, {}) || {};
   dismissedAgendaEvents = read(KEYS.dismissedAgendaEvents, []) || [];
@@ -3091,7 +3378,10 @@ function init(){
   updateDriveCardVisibility();
   renderFilterChips();
   renderClientsSettings();
+  renderSecurityCard();
+  showLockScreenIfNeeded();
   render();
+  attemptAutoDriveReconnect();
 }
 
 init();
