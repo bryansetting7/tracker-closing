@@ -12,6 +12,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
 <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png?v=2">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+<link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -204,7 +205,7 @@
     .tabbar .dot{width:6px;height:6px;border-radius:50%}
     #view-ajouter,#view-historique,#view-reglages{max-width:600px;margin:0 auto}
     .stack.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
-    .stack.grid2>.card:first-of-type,.stack.grid2 .duo,.stack.grid2>#stats-export-row,.stack.grid2>#stats-period-card,.stack.grid2>#cmp-card{grid-column:1/-1}
+    .stack.grid2>.card:first-of-type,.stack.grid2 .duo,.stack.grid2>#stats-export-row,.stack.grid2>#stats-period-card,.stack.grid2>#cmp-card,.stack.grid2>#records-card{grid-column:1/-1}
   }
   @media print{
     .tabbar,.seg,#stats-export-row,#stats-period-card{display:none!important}
@@ -613,6 +614,30 @@
       </div>
       <div class="note hide" id="panier-empty" style="margin-top:8px">Pas encore de vente sur cette période.</div>
     </div>
+    <div class="card" id="records-card" data-card-id="records">
+      <div class="cap-row"><div class="cap">Records personnels</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
+      <div class="note" style="margin-top:4px">Sur toute la période enregistrée (indépendant du filtre de période ci-dessus).</div>
+      <div class="split" style="margin-top:6px;padding-top:0;border-top:none">
+        <div class="col">
+          <span class="k">Plus grosse vente</span>
+          <span class="v" id="rec-best-sale">—</span>
+          <span class="sub" id="rec-best-sale-sub">—</span>
+        </div>
+        <div class="sep"></div>
+        <div class="col">
+          <span class="k">Meilleure série de closings</span>
+          <span class="v num" id="rec-best-streak">0</span>
+          <span class="sub" id="rec-best-streak-sub">—</span>
+        </div>
+        <div class="sep"></div>
+        <div class="col">
+          <span class="k">Meilleure semaine</span>
+          <span class="v" id="rec-best-week">—</span>
+          <span class="sub" id="rec-best-week-sub">—</span>
+        </div>
+      </div>
+      <div class="note hide" id="records-empty" style="margin-top:8px">Pas encore assez de données pour afficher tes records.</div>
+    </div>
     <div class="card" data-card-id="revenu">
       <div class="cap-row"><div class="cap">Revenu par mois</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
       <div class="chart-wrap"><canvas id="chart-revenu"></canvas></div>
@@ -648,6 +673,11 @@
       <div class="chart-wrap"><canvas id="chart-repartition"></canvas></div>
       <div class="chart-empty hide" id="chart-repartition-empty"><span class="t">Aucun call sur cette période</span>Ajoute des calls pour voir la répartition de tes résultats.</div>
     </div>
+    <div class="card" data-card-id="taux-source">
+      <div class="cap-row"><div class="cap">Taux de closing par source</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
+      <div class="chart-wrap"><canvas id="chart-taux-source"></canvas></div>
+      <div class="chart-empty hide" id="chart-taux-source-empty"><span class="t">Pas encore de source renseignée</span>Renseigne la source de tes prospects dans leur fiche pour voir ce graphique.</div>
+    </div>
     <div class="card hide" id="comparatif-card" data-card-id="comparatif">
       <div class="cap-row"><div class="cap">Comparatif entre infopreneurs</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
       <div id="comparatif-table" style="margin-top:8px"></div>
@@ -678,7 +708,7 @@
 
     <div class="card">
       <div class="cap">Sauvegarde</div>
-      <div class="note" style="margin-top:8px">Tes données sont stockées uniquement sur cet appareil/navigateur. Exporte-les régulièrement pour ne rien perdre si tu changes de téléphone ou vides ton cache.</div>
+      <div class="note" style="margin-top:8px">Tes données sont stockées uniquement sur cet appareil/navigateur. Exporte-les régulièrement pour ne rien perdre si tu changes de téléphone ou vides ton cache. L'appli fonctionne aussi hors connexion une fois ouverte une première fois (tu peux l'installer sur ton téléphone comme une vraie appli depuis le menu de ton navigateur — « Ajouter à l'écran d'accueil »).</div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button type="button" class="btn ghost" style="flex:1" onclick="exportData()">Exporter (JSON)</button>
         <button type="button" class="btn ghost" style="flex:1" onclick="triggerImport()">Importer</button>
@@ -712,6 +742,16 @@
         Mode sombre
       </label>
       <button type="button" class="btn ghost" style="margin-top:12px" onclick="resetStatsCardOrder()">Réinitialiser l'ordre des cartes Stats</button>
+    </div>
+
+    <div class="card">
+      <div class="cap">Notifications de relance</div>
+      <div class="note" style="margin-top:8px">Reçois une notification sur cet appareil quand un suivi prévu arrive à échéance ou est en retard. Ça fonctionne uniquement pendant que l'appli reste ouverte dans un onglet de ton navigateur (même en arrière-plan) — pas après avoir fermé complètement le navigateur, une vraie notification push nécessiterait un serveur dédié.</div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#5f5e58">
+        <input type="checkbox" id="notif-toggle" onchange="toggleRelanceNotifications(this.checked)">
+        Activer les notifications de relance
+      </label>
+      <div class="note hide" id="notif-denied-note" style="margin-top:8px;color:#b83a2e">Notifications bloquées par ton navigateur pour ce site. Autorise-les dans les réglages du site (icône à côté de l'adresse) puis réessaie.</div>
     </div>
 
     <div class="card" id="security-card">
@@ -781,6 +821,21 @@
         <button type="button" class="btn ghost" style="margin-top:6px" onclick="saveProspectContact()">Enregistrer le contact</button>
       </div>
     </div>
+    <div style="margin-top:14px">
+      <div class="field" style="gap:6px">
+        <label for="pm-source-select">Source du prospect (optionnel)</label>
+        <select id="pm-source-select" onchange="onProspectSourceSelectChange()">
+          <option value="">Non renseignée</option>
+          <option value="DM Instagram">DM Instagram</option>
+          <option value="Parrainage">Parrainage</option>
+          <option value="Publicité">Publicité</option>
+          <option value="iClosed">iClosed</option>
+          <option value="autre">Autre</option>
+        </select>
+        <input type="text" id="pm-source-autre" class="hide" placeholder="Précise la source" style="margin-top:6px">
+        <button type="button" class="btn ghost" style="margin-top:6px" onclick="saveProspectSource()">Enregistrer la source</button>
+      </div>
+    </div>
     <button type="button" class="btn ghost" style="margin-top:14px" id="pm-duplicate-btn" onclick="duplicateProspectCall()">Dupliquer un call pour ce prospect</button>
     <button type="button" class="btn danger" style="margin-top:8px" onclick="deleteProspect()">Supprimer ce prospect</button>
     <div class="timeline" id="pm-timeline" style="margin-top:14px"></div>
@@ -806,7 +861,8 @@
 </div>
 
 <script>
-const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1', yearlyObjectifs:'closing-yearly-objectifs-v1', prospectTags:'closing-prospect-tags-v1', prospectInfo:'closing-prospect-info-v1', dismissedAgendaEvents:'closing-agenda-dismissed-v1', statsCardOrder:'closing-stats-order-v1', statsPeriod:'closing-stats-period-v1'};
+const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1', yearlyObjectifs:'closing-yearly-objectifs-v1', prospectTags:'closing-prospect-tags-v1', prospectInfo:'closing-prospect-info-v1', prospectSources:'closing-prospect-sources-v1', dismissedAgendaEvents:'closing-agenda-dismissed-v1', statsCardOrder:'closing-stats-order-v1', statsPeriod:'closing-stats-period-v1'};
+const PROSPECT_SOURCE_PRESETS = ['DM Instagram', 'Parrainage', 'Publicité', 'iClosed'];
 const LAST_EXPORT_KEY = 'closing-last-export';
 const EXPORT_REMINDER_DAYS = 7;
 
@@ -875,6 +931,59 @@ function checkSuiviReminder(){
   }
 }
 
+const NOTIF_ENABLED_KEY = 'closing-notif-enabled';
+const NOTIF_NOTIFIED_KEY = 'closing-notif-notified-ids';
+
+function isNotifEnabled(){
+  return localStorage.getItem(NOTIF_ENABLED_KEY) === '1';
+}
+
+async function toggleRelanceNotifications(checked){
+  const deniedNote = $('notif-denied-note');
+  if (deniedNote) deniedNote.classList.add('hide');
+  if (checked) {
+    if (!('Notification' in window)) {
+      alert("Les notifications ne sont pas prises en charge par ce navigateur.");
+      $('notif-toggle').checked = false;
+      return;
+    }
+    let perm = Notification.permission;
+    if (perm === 'default') perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      $('notif-toggle').checked = false;
+      localStorage.setItem(NOTIF_ENABLED_KEY, '0');
+      if (deniedNote) deniedNote.classList.remove('hide');
+      return;
+    }
+  }
+  localStorage.setItem(NOTIF_ENABLED_KEY, checked ? '1' : '0');
+  if (checked) checkSuiviNotifications();
+}
+
+function checkSuiviNotifications(){
+  if (!isNotifEnabled()) return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const todayIso = today();
+  const due = calls.filter(c => c.result === 'suivi' && c.suiviDate && c.suiviDate <= todayIso);
+  const dueIds = due.map(c => c.id);
+  let notified = [];
+  try { notified = JSON.parse(localStorage.getItem(NOTIF_NOTIFIED_KEY) || '[]'); } catch(e) { notified = []; }
+  if (due.length === 0) {
+    if (notified.length) localStorage.setItem(NOTIF_NOTIFIED_KEY, '[]');
+    return;
+  }
+  const newOnes = due.filter(c => !notified.includes(c.id));
+  if (newOnes.length > 0) {
+    const overdueNew = newOnes.filter(c => c.suiviDate < todayIso).length;
+    const body = newOnes.length === 1
+      ? `Relance ${newOnes[0].prospect} — suivi ${overdueNew ? 'en retard' : "prévu aujourd'hui"}.`
+      : `${newOnes.length} suivi(s) à relancer${overdueNew ? `, dont ${overdueNew} en retard` : ''}.`;
+    try { new Notification('Closing Tracker — relance à faire', { body: body, icon: 'favicon-192.png' }); } catch(e) {}
+  }
+  const merged = Array.from(new Set(notified.concat(dueIds))).filter(id => dueIds.includes(id));
+  localStorage.setItem(NOTIF_NOTIFIED_KEY, JSON.stringify(merged));
+}
+
 let pendingRemoval = null;
 
 function flashUndo(label, onUndo, onCommit){
@@ -911,6 +1020,7 @@ let weeklyObjectifs = {};
 let yearlyObjectifs = {};
 let prospectTags = {};
 let prospectInfo = {};
+let prospectSources = {};
 let tab = 'suivi', filter = 'tous', mode = 'call', statusFilter = 'tous';
 let callClientId = null, callResult = null, primeClientId = null;
 let returnTabAfterCall = null;
@@ -1176,6 +1286,7 @@ function viewSuivis(){
 function render(){
   checkExportReminder();
   checkSuiviReminder();
+  checkSuiviNotifications();
   const cs = scoped(calls), ps = scoped(primes);
   const closedCalls = cs.filter(c => c.result === 'closed');
   const heldCalls = cs.filter(c => c.result !== 'noshow');
@@ -1261,7 +1372,10 @@ function render(){
   const csForList = searchQ ? csForList0.filter(c =>
     String(c.prospect || '').toLowerCase().includes(searchQ) ||
     String(c.offerName || '').toLowerCase().includes(searchQ) ||
-    String(c.notes || '').toLowerCase().includes(searchQ)
+    String(c.notes || '').toLowerCase().includes(searchQ) ||
+    String(clientName(c.clientId) || '').toLowerCase().includes(searchQ) ||
+    objectionLabel(c).replace(/<[^>]*>/g, '').toLowerCase().includes(searchQ) ||
+    String((prospectSources[prospectKey(c.clientId, c.prospect)] || '')).toLowerCase().includes(searchQ)
   ) : csForList0;
   const psForList = searchQ ? psForList0.filter(p => String(p.label || '').toLowerCase().includes(searchQ)) : psForList0;
 
@@ -1683,6 +1797,35 @@ function renderProspectContact(){
   else { el.innerHTML = ''; el.classList.add('hide'); }
 }
 
+function onProspectSourceSelectChange(){
+  $('pm-source-autre').classList.toggle('hide', $('pm-source-select').value !== 'autre');
+}
+
+function saveProspectSource(){
+  if (!currentProspectKey) return;
+  const sel = $('pm-source-select').value;
+  const source = sel === 'autre' ? $('pm-source-autre').value.trim() : sel;
+  if (source) prospectSources[currentProspectKey] = source;
+  else delete prospectSources[currentProspectKey];
+  persist(KEYS.prospectSources, prospectSources);
+  renderProspectSource();
+  render();
+}
+
+function renderProspectSource(){
+  if (!currentProspectKey) return;
+  const source = prospectSources[currentProspectKey] || '';
+  if (source && !PROSPECT_SOURCE_PRESETS.includes(source)) {
+    $('pm-source-select').value = 'autre';
+    $('pm-source-autre').value = source;
+    $('pm-source-autre').classList.remove('hide');
+  } else {
+    $('pm-source-select').value = source;
+    $('pm-source-autre').value = '';
+    $('pm-source-autre').classList.add('hide');
+  }
+}
+
 function deleteProspect(){
   if (!currentProspectKey) return;
   const key = currentProspectKey;
@@ -1691,21 +1834,26 @@ function deleteProspect(){
   if (!confirm(`Supprimer ${name} ? ${entries.length} call(s) enregistré(s) pour ce prospect seront supprimés. Cette action n'affecte pas ton Agenda Google (données séparées, en lecture seule).`)) return;
   const removedTags = prospectTags[key];
   const removedInfo = prospectInfo[key];
+  const removedSource = prospectSources[key];
   calls = calls.filter(c => prospectKey(c.clientId, c.prospect) !== key);
   delete prospectTags[key];
   delete prospectInfo[key];
+  delete prospectSources[key];
   persist(KEYS.calls, calls);
   persist(KEYS.prospectTags, prospectTags);
   persist(KEYS.prospectInfo, prospectInfo);
+  persist(KEYS.prospectSources, prospectSources);
   closeProspectCard();
   render();
   flashUndo(`${name} supprimé.`, () => {
     calls = calls.concat(entries);
     if (removedTags) prospectTags[key] = removedTags;
     if (removedInfo) prospectInfo[key] = removedInfo;
+    if (removedSource) prospectSources[key] = removedSource;
     persist(KEYS.calls, calls);
     persist(KEYS.prospectTags, prospectTags);
     persist(KEYS.prospectInfo, prospectInfo);
+    persist(KEYS.prospectSources, prospectSources);
     render();
   }, () => {});
 }
@@ -1738,6 +1886,7 @@ function renderProspectCard(){
     $('pm-summary').innerHTML = `<div class="col"><span class="k">Calls</span><span class="v">0</span></div>`;
     renderProspectTags();
     renderProspectContact();
+    renderProspectSource();
     $('pm-duplicate-btn').textContent = 'Ajouter un call pour ce prospect';
     $('pm-timeline').innerHTML = '<div class="empty">Aucun call pour ce prospect pour l\'instant.</div>';
     return;
@@ -1760,6 +1909,7 @@ function renderProspectCard(){
   `;
   renderProspectTags();
   renderProspectContact();
+  renderProspectSource();
   $('pm-timeline').innerHTML = entries.map(c => {
     const label = c.result === 'closed' ? 'Closé' : (c.result === 'noshow' ? 'Absent' : (c.result === 'suivi' ? 'Suivi prévu' : 'Perdu'));
     const cls = c.result === 'closed' ? 'closed' : (c.result === 'noshow' ? 'noshow' : (c.result === 'suivi' ? 'suivi' : 'perdu'));
@@ -2015,7 +2165,7 @@ function renderClientsSettings(){
   `).join('');
 }
 
-let chartRevenu = null, chartObjections = null, chartTaux = null, chartOffres = null, chartRepartition = null, chartVolume = null;
+let chartRevenu = null, chartObjections = null, chartTaux = null, chartOffres = null, chartRepartition = null, chartVolume = null, chartTauxSource = null;
 
 function makeValueLabelPlugin(values, format, color){
   return {
@@ -2356,9 +2506,74 @@ function initStatsReorder(){
   container.addEventListener('pointercancel', endDrag);
 }
 
+function weekKeyOf(iso){
+  return startOfWeek(new Date(iso + 'T00:00:00')).toISOString().split('T')[0];
+}
+
+function renderRecords(){
+  const bestSaleEl = $('rec-best-sale');
+  if (!bestSaleEl) return;
+  const cs = scoped(calls), ps = scoped(primes);
+  const emptyEl = $('records-empty');
+  const hasAnyData = cs.length > 0 || ps.length > 0;
+  if (emptyEl) emptyEl.classList.toggle('hide', hasAnyData);
+
+  // Plus grosse vente jamais faite
+  const closedCalls = cs.filter(c => c.result === 'closed' && c.commission);
+  if (closedCalls.length === 0) {
+    bestSaleEl.textContent = '—';
+    $('rec-best-sale-sub').textContent = 'Aucune vente pour l\'instant.';
+  } else {
+    const best = closedCalls.reduce((a,c) => (c.commission || 0) > (a.commission || 0) ? c : a);
+    bestSaleEl.textContent = euros(best.commission);
+    $('rec-best-sale-sub').textContent = esc(best.prospect) + (best.offerName ? ' · ' + esc(best.offerName) : '') + ' · ' + fmtDate(best.date);
+  }
+
+  // Meilleure série de closings consécutifs (parmi les calls conclus, hors no-show et suivi en attente)
+  const concluded = cs.filter(c => c.result !== 'noshow' && c.result !== 'suivi')
+    .slice().sort((a,b) => String(a.date).localeCompare(String(b.date)) || String(a.id).localeCompare(String(b.id)));
+  let bestStreak = 0, bestStreakEnd = null, curStreak = 0, curStreakEnd = null;
+  concluded.forEach(c => {
+    if (c.result === 'closed') {
+      curStreak++;
+      curStreakEnd = c;
+      if (curStreak > bestStreak) { bestStreak = curStreak; bestStreakEnd = curStreakEnd; }
+    } else {
+      curStreak = 0; curStreakEnd = null;
+    }
+  });
+  $('rec-best-streak').textContent = String(bestStreak);
+  $('rec-best-streak-sub').textContent = bestStreak === 0
+    ? 'Aucun closing pour l\'instant.'
+    : bestStreak === 1
+      ? 'closing d\'affilée'
+      : 'closings d\'affilée' + (bestStreakEnd ? ' (jusqu\'au ' + fmtDate(bestStreakEnd.date) + ')' : '');
+
+  // Meilleure semaine (CA closings + primes)
+  const weekTotals = {};
+  closedCalls.forEach(c => {
+    const k = weekKeyOf(c.date);
+    weekTotals[k] = (weekTotals[k] || 0) + (c.commission || 0);
+  });
+  ps.forEach(p => {
+    const k = weekKeyOf(p.date);
+    weekTotals[k] = (weekTotals[k] || 0) + (p.montant || 0);
+  });
+  const weekKeys = Object.keys(weekTotals);
+  if (weekKeys.length === 0) {
+    $('rec-best-week').textContent = '—';
+    $('rec-best-week-sub').textContent = 'Pas encore de revenu.';
+  } else {
+    const bestWeekKey = weekKeys.reduce((a,b) => weekTotals[b] > weekTotals[a] ? b : a);
+    $('rec-best-week').textContent = euros(weekTotals[bestWeekKey]);
+    $('rec-best-week-sub').textContent = 'Semaine du ' + fmtDate(bestWeekKey);
+  }
+}
+
 function renderCharts(){
   renderComparison();
   renderPanierMoyen();
+  renderRecords();
   renderObjectifHistory();
   const cc = chartColors();
   const statsInfo = getStatsPeriodInfo();
@@ -2600,6 +2815,54 @@ function renderCharts(){
     });
   }
 
+  const sourceGroups = {};
+  cs.filter(c => c.result !== 'noshow' && c.result !== 'suivi').forEach(c => {
+    const src = prospectSources[prospectKey(c.clientId, c.prospect)] || 'Non renseignée';
+    if (!sourceGroups[src]) sourceGroups[src] = { total: 0, closed: 0 };
+    sourceGroups[src].total++;
+    if (c.result === 'closed') sourceGroups[src].closed++;
+  });
+  const tauxSourceData = Object.keys(sourceGroups).map(src => ({
+    name: src, rate: Math.round(sourceGroups[src].closed / sourceGroups[src].total * 100), count: sourceGroups[src].total
+  })).sort((a,b) => b.count - a.count);
+
+  if (chartTauxSource) chartTauxSource.destroy();
+  if (tauxSourceData.length === 0) {
+    $('chart-taux-source-empty').classList.remove('hide');
+    $('chart-taux-source').parentElement.classList.add('hide');
+  } else {
+    $('chart-taux-source-empty').classList.add('hide');
+    $('chart-taux-source').parentElement.classList.remove('hide');
+    chartTauxSource = new Chart($('chart-taux-source').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: tauxSourceData.map(d => d.name),
+        datasets: [{
+          data: tauxSourceData.map(d => d.rate),
+          backgroundColor: cc.tauxBar,
+          hoverBackgroundColor: cc.tauxBarHover,
+          borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
+          borderSkipped: false,
+          barPercentage: 0.5,
+          categoryPercentage: 0.6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: Object.assign({}, TOOLTIP_STYLE, { callbacks: { title: () => '', label: ctx => ctx.raw + '% (' + tauxSourceData[ctx.dataIndex].count + (tauxSourceData[ctx.dataIndex].count > 1 ? ' calls)' : ' call)') } })
+        },
+        scales: {
+          y: { beginAtZero: true, max: 100, ticks: { maxTicksLimit: 5, callback: v => v + '%', color: cc.tick, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: cc.grid }, border: { display: false } },
+          x: { ticks: { color: cc.tick, font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: cc.border } }
+        }
+      },
+      plugins: [ makeValueLabelPlugin(tauxSourceData.map(d => d.rate), v => v + '%', cc.label) ]
+    });
+  }
+
   renderComparatifTable(statsInfo);
 
   const tauxCard = $('taux-card');
@@ -2818,13 +3081,13 @@ function csvEscape(v){
 }
 
 function buildCsvRows(callsList, primesList){
-  const rows = [['Type','Date','Infopreneur','Prospect / Libellé','Résultat','Montant (€)','Offre','Objection','Date de suivi','Notes','Lien enregistrement']];
+  const rows = [['Type','Date','Infopreneur','Prospect / Libellé','Source','Résultat','Montant (€)','Offre','Objection','Date de suivi','Notes','Lien enregistrement']];
   callsList.slice().sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(c => {
     const statusLabel = c.result === 'closed' ? 'Closé' : (c.result === 'noshow' ? 'Absent' : (c.result === 'suivi' ? 'Suivi prévu' : 'Perdu'));
-    rows.push(['Call', c.date, clientName(c.clientId), c.prospect || '', statusLabel, c.result === 'closed' ? (c.commission || 0) : '', c.offerName || '', objectionLabel(c) || '', (c.suiviDate || '') + (c.suiviTime ? ' ' + c.suiviTime : ''), c.notes || '', getCallLinks(c).join(' | ')]);
+    rows.push(['Call', c.date, clientName(c.clientId), c.prospect || '', prospectSources[prospectKey(c.clientId, c.prospect)] || '', statusLabel, c.result === 'closed' ? (c.commission || 0) : '', c.offerName || '', objectionLabel(c) || '', (c.suiviDate || '') + (c.suiviTime ? ' ' + c.suiviTime : ''), c.notes || '', getCallLinks(c).join(' | ')]);
   });
   primesList.slice().sort((a,b) => String(a.date).localeCompare(String(b.date))).forEach(p => {
-    rows.push(['Prime', p.date, clientName(p.clientId), p.label || '', '', p.montant || 0, '', '', '', '', '']);
+    rows.push(['Prime', p.date, clientName(p.clientId), p.label || '', '', '', p.montant || 0, '', '', '', '', '']);
   });
   return rows;
 }
@@ -2884,6 +3147,9 @@ function applyImportedPayload(data, sourceLabel, skipConfirm){
   offers = data.offers || {};
   weeklyObjectifs = data.weeklyObjectifs || {};
   yearlyObjectifs = data.yearlyObjectifs || {};
+  prospectTags = data.prospectTags !== undefined ? data.prospectTags : prospectTags;
+  prospectInfo = data.prospectInfo !== undefined ? data.prospectInfo : prospectInfo;
+  prospectSources = data.prospectSources !== undefined ? data.prospectSources : prospectSources;
   persist(KEYS.clients, clients);
   persist(KEYS.calls, calls);
   persist(KEYS.primes, primes);
@@ -2891,6 +3157,9 @@ function applyImportedPayload(data, sourceLabel, skipConfirm){
   persist(KEYS.offers, offers);
   persist(KEYS.weeklyObjectifs, weeklyObjectifs);
   persist(KEYS.yearlyObjectifs, yearlyObjectifs);
+  persist(KEYS.prospectTags, prospectTags);
+  persist(KEYS.prospectInfo, prospectInfo);
+  persist(KEYS.prospectSources, prospectSources);
   localStorage.setItem(LAST_EXPORT_KEY, Date.now().toString());
   renderFilterChips(); renderClientsSettings(); render();
   if (tab === 'stats') renderCharts();
@@ -3288,7 +3557,8 @@ function buildBackupPayload(){
     version: 1,
     exportedAt: new Date().toISOString(),
     clients: clients, calls: calls, primes: primes,
-    objectifs: objectifs, offers: offers, weeklyObjectifs: weeklyObjectifs, yearlyObjectifs: yearlyObjectifs
+    objectifs: objectifs, offers: offers, weeklyObjectifs: weeklyObjectifs, yearlyObjectifs: yearlyObjectifs,
+    prospectTags: prospectTags, prospectInfo: prospectInfo, prospectSources: prospectSources
   };
 }
 
@@ -3564,6 +3834,7 @@ function init(){
   yearlyObjectifs = read(KEYS.yearlyObjectifs, {}) || {};
   prospectTags = read(KEYS.prospectTags, {}) || {};
   prospectInfo = read(KEYS.prospectInfo, {}) || {};
+  prospectSources = read(KEYS.prospectSources, {}) || {};
   dismissedAgendaEvents = read(KEYS.dismissedAgendaEvents, []) || [];
   statsDefaultOrder = [...document.querySelectorAll('#view-stats .card[data-card-id]')].map(c => c.dataset.cardId);
   statsCardOrder = read(KEYS.statsCardOrder, []) || [];
@@ -3585,6 +3856,11 @@ function init(){
   document.body.classList.toggle('dark', localStorage.getItem('closing-dark-mode') === '1');
   $('dark-mode-toggle').checked = localStorage.getItem('closing-dark-mode') === '1';
   $('drive-autobackup-toggle').checked = localStorage.getItem('closing-drive-autobackup') === '1';
+  $('notif-toggle').checked = isNotifEnabled() && 'Notification' in window && Notification.permission === 'granted';
+  if (isNotifEnabled() && 'Notification' in window && Notification.permission !== 'granted') {
+    localStorage.setItem(NOTIF_ENABLED_KEY, '0');
+  }
+  setInterval(checkSuiviNotifications, 5 * 60 * 1000);
   updateAgendaCardVisibility();
   updateDriveCardVisibility();
   renderFilterChips();
@@ -3597,6 +3873,12 @@ function init(){
 }
 
 init();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
