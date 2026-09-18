@@ -196,10 +196,10 @@
     .tabbar .dot{width:6px;height:6px;border-radius:50%}
     #view-ajouter,#view-historique,#view-reglages{max-width:600px;margin:0 auto}
     .stack.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
-    .stack.grid2>.card:first-of-type,.stack.grid2 .duo,.stack.grid2>#export-pdf-btn{grid-column:1/-1}
+    .stack.grid2>.card:first-of-type,.stack.grid2 .duo,.stack.grid2>#export-pdf-btn,.stack.grid2>#stats-period-card,.stack.grid2>#cmp-card{grid-column:1/-1}
   }
   @media print{
-    .tabbar,.seg,#export-pdf-btn{display:none!important}
+    .tabbar,.seg,#export-pdf-btn,#stats-period-card{display:none!important}
     body{background:#fff}
     .head{position:static;border-bottom:none;padding:0 0 14px}
     main{overflow:visible;padding:0}
@@ -525,11 +525,26 @@
   <section id="view-stats" class="stack grid2 hide">
     <div id="print-meta"></div>
     <button type="button" class="btn ghost" id="export-pdf-btn" onclick="exportPdf()">Exporter en PDF</button>
-    <div class="card" data-card-id="cmp">
-      <div class="cap-row"><div class="cap">Ce mois vs mois dernier</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
+    <div class="card" id="stats-period-card">
+      <div class="cap-row"><div class="cap">Période</div></div>
+      <div class="seg" id="stats-period-seg" style="margin-top:10px">
+        <button type="button" data-mode="alltime" onclick="setStatsPeriodMode('alltime')">Début</button>
+        <button type="button" data-mode="thismonth" onclick="setStatsPeriodMode('thismonth')">Ce mois</button>
+        <button type="button" data-mode="month" onclick="setStatsPeriodMode('month')">Un mois</button>
+        <button type="button" data-mode="year" onclick="setStatsPeriodMode('year')">Une année</button>
+      </div>
+      <div id="stats-period-month-picker" class="hide" style="margin-top:10px">
+        <input type="month" id="stats-period-month-input" onchange="setStatsPeriodMonthValue(this.value)">
+      </div>
+      <div id="stats-period-year-picker" class="hide" style="margin-top:10px">
+        <select id="stats-period-year-select" onchange="setStatsPeriodYearValue(this.value)"></select>
+      </div>
+    </div>
+    <div class="card" id="cmp-card" data-card-id="cmp">
+      <div class="cap-row"><div class="cap" id="cmp-title">Ce mois vs mois dernier</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
       <div class="split" style="margin-top:6px;padding-top:0;border-top:none">
         <div class="col">
-          <span class="k">CA ce mois</span>
+          <span class="k" id="cmp-ca-label">CA ce mois</span>
           <span class="v" id="cmp-ca-cur">0 €</span>
           <span class="sub" id="cmp-ca-delta">—</span>
         </div>
@@ -708,7 +723,7 @@
 </div>
 
 <script>
-const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1', prospectTags:'closing-prospect-tags-v1', prospectInfo:'closing-prospect-info-v1', dismissedAgendaEvents:'closing-agenda-dismissed-v1', statsCardOrder:'closing-stats-order-v1'};
+const KEYS = {clients:'closing-clients', calls:'closing-calls-v2', primes:'closing-primes-v2', objectifs:'closing-objectifs-v2', offers:'closing-offers-v1', weeklyObjectifs:'closing-weekly-objectifs-v1', prospectTags:'closing-prospect-tags-v1', prospectInfo:'closing-prospect-info-v1', dismissedAgendaEvents:'closing-agenda-dismissed-v1', statsCardOrder:'closing-stats-order-v1', statsPeriod:'closing-stats-period-v1'};
 const LAST_EXPORT_KEY = 'closing-last-export';
 const EXPORT_REMINDER_DAYS = 7;
 
@@ -817,6 +832,7 @@ let callClientId = null, callResult = null, primeClientId = null;
 let returnTabAfterCall = null;
 let editingCallId = null;
 let statsCardOrder = [], statsDefaultOrder = [];
+let statsPeriodMode = 'alltime', statsPeriodMonth = '', statsPeriodYear = null;
 let currentProspectKey = null;
 let currentProspectClientId = null, currentProspectName = '';
 let selectedOfferId = null, selectedOfferName = null;
@@ -1946,6 +1962,101 @@ function monthLabel(key){
   return noms[parseInt(m,10)-1] + ' ' + y.slice(2);
 }
 
+function monthLabelFull(key){
+  const [y,m] = key.split('-');
+  const noms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  return noms[parseInt(m,10)-1] + ' ' + y;
+}
+
+function getStatsPeriodInfo(){
+  if (statsPeriodMode === 'alltime') {
+    return { mode: 'alltime', curPred: () => true, prevPred: null, curLabel: 'Depuis le début', prevLabel: '', hasComparison: false };
+  }
+  if (statsPeriodMode === 'year') {
+    const y = statsPeriodYear || new Date().getFullYear();
+    const py = y - 1;
+    return {
+      mode: 'year',
+      curPred: d => parseInt(String(d).slice(0,4), 10) === y,
+      prevPred: d => parseInt(String(d).slice(0,4), 10) === py,
+      curLabel: String(y), prevLabel: String(py), hasComparison: true
+    };
+  }
+  if (statsPeriodMode === 'month') {
+    const mk = statsPeriodMonth || monthKey(today());
+    const [yy, mm] = mk.split('-').map(Number);
+    const prevD = new Date(yy, mm - 2, 1);
+    const pmk = prevD.getFullYear() + '-' + String(prevD.getMonth() + 1).padStart(2, '0');
+    return {
+      mode: 'month',
+      curPred: d => monthKey(d) === mk,
+      prevPred: d => monthKey(d) === pmk,
+      curLabel: monthLabelFull(mk), prevLabel: monthLabelFull(pmk), hasComparison: true
+    };
+  }
+  // 'thismonth' (default)
+  const curKey = monthKey(today());
+  const now = new Date();
+  const prevD = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevKey = prevD.getFullYear() + '-' + String(prevD.getMonth() + 1).padStart(2, '0');
+  return {
+    mode: 'thismonth',
+    curPred: d => monthKey(d) === curKey,
+    prevPred: d => monthKey(d) === prevKey,
+    curLabel: 'ce mois', prevLabel: 'mois dernier', hasComparison: true
+  };
+}
+
+function persistStatsPeriod(){
+  persist(KEYS.statsPeriod, { mode: statsPeriodMode, month: statsPeriodMonth, year: statsPeriodYear });
+}
+
+function setStatsPeriodMode(m){
+  statsPeriodMode = m;
+  if (m === 'month' && !statsPeriodMonth) statsPeriodMonth = monthKey(today());
+  if (m === 'year' && !statsPeriodYear) statsPeriodYear = new Date().getFullYear();
+  persistStatsPeriod();
+  renderStatsPeriodUI();
+  renderCharts();
+}
+
+function setStatsPeriodMonthValue(v){
+  if (!v) return;
+  statsPeriodMonth = v;
+  persistStatsPeriod();
+  renderCharts();
+}
+
+function setStatsPeriodYearValue(v){
+  const y = parseInt(v, 10);
+  if (!y) return;
+  statsPeriodYear = y;
+  persistStatsPeriod();
+  renderCharts();
+}
+
+function renderStatsPeriodUI(){
+  const seg = $('stats-period-seg');
+  if (!seg) return;
+  [...seg.children].forEach(b => b.classList.toggle('on', b.dataset.mode === statsPeriodMode));
+  const monthPicker = $('stats-period-month-picker');
+  const yearPicker = $('stats-period-year-picker');
+  if (monthPicker) monthPicker.classList.toggle('hide', statsPeriodMode !== 'month');
+  if (yearPicker) yearPicker.classList.toggle('hide', statsPeriodMode !== 'year');
+  const monthInput = $('stats-period-month-input');
+  if (monthInput) monthInput.value = statsPeriodMonth || monthKey(today());
+  const yearSelect = $('stats-period-year-select');
+  if (yearSelect) {
+    const years = new Set([new Date().getFullYear()]);
+    calls.forEach(c => { if (c.date) years.add(parseInt(String(c.date).slice(0,4), 10)); });
+    primes.forEach(p => { if (p.date) years.add(parseInt(String(p.date).slice(0,4), 10)); });
+    if (statsPeriodYear) years.add(statsPeriodYear);
+    const sorted = [...years].sort((a,b) => b - a);
+    yearSelect.innerHTML = sorted.map(y => `<option value="${y}">${y}</option>`).join('');
+    yearSelect.value = String(statsPeriodYear || new Date().getFullYear());
+  }
+}
+
 function renderObjectifHistory(){
   const el = $('objectif-history');
   if (!el) return;
@@ -1996,17 +2107,18 @@ function chartColors(){
     : { grid: '#f2f0eb', border: '#e0ddd6', tick: '#5f5e58', label: '#16181b', tauxBar: '#16181b', tauxBarHover: '#2b2e33' };
 }
 
-function renderComparatifTable(){
+function renderComparatifTable(info){
   const card = $('comparatif-card');
   const el = $('comparatif-table');
   if (!card || !el) return;
+  const pred = info ? info.curPred : () => true;
   const rows = clients.map(c => {
-    const clientCalls = calls.filter(x => x.clientId === c.id);
+    const clientCalls = calls.filter(x => x.clientId === c.id && pred(x.date));
     const concluded = clientCalls.filter(x => x.result !== 'noshow' && x.result !== 'suivi');
     const closedN = concluded.filter(x => x.result === 'closed').length;
     const rate = concluded.length ? Math.round(closedN / concluded.length * 100) : 0;
     const ca = clientCalls.filter(x => x.result === 'closed').reduce((a,x) => a + (x.commission || 0), 0)
-      + primes.filter(p => p.clientId === c.id).reduce((a,p) => a + (p.montant || 0), 0);
+      + primes.filter(p => p.clientId === c.id && pred(p.date)).reduce((a,p) => a + (p.montant || 0), 0);
     return { name: c.name, ca, rate, count: clientCalls.length };
   }).filter(r => r.count > 0 || r.ca > 0);
 
@@ -2134,7 +2246,8 @@ function renderCharts(){
   renderComparison();
   renderObjectifHistory();
   const cc = chartColors();
-  const cs = scoped(calls), ps = scoped(primes);
+  const statsInfo = getStatsPeriodInfo();
+  const cs = scoped(calls).filter(c => statsInfo.curPred(c.date)), ps = scoped(primes).filter(p => statsInfo.curPred(p.date));
 
   const monthTotals = {};
   cs.filter(c => c.result === 'closed').forEach(c => {
@@ -2275,10 +2388,10 @@ function renderCharts(){
     });
   }
 
-  renderComparatifTable();
+  renderComparatifTable(statsInfo);
 
   const tauxData = clients.map(c => {
-    const clientCalls = calls.filter(x => x.clientId === c.id && x.result !== 'noshow' && x.result !== 'suivi');
+    const clientCalls = calls.filter(x => x.clientId === c.id && statsInfo.curPred(x.date) && x.result !== 'noshow' && x.result !== 'suivi');
     const closedN = clientCalls.filter(x => x.result === 'closed').length;
     const rate = clientCalls.length ? Math.round(closedN / clientCalls.length * 100) : 0;
     return { name: c.name, rate: rate, count: clientCalls.length };
@@ -2325,14 +2438,11 @@ function renderCharts(){
 
 function renderComparison(){
   const cs = scoped(calls), ps = scoped(primes);
-  const now = new Date();
-  const curKey = monthKey(today());
-  const prevD = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const prevKey = prevD.getFullYear() + '-' + String(prevD.getMonth() + 1).padStart(2, '0');
+  const info = getStatsPeriodInfo();
 
-  function statsFor(key){
-    const csM = cs.filter(c => monthKey(c.date) === key);
-    const psM = ps.filter(p => monthKey(p.date) === key);
+  function statsFor(pred){
+    const csM = cs.filter(c => pred(c.date));
+    const psM = ps.filter(p => pred(p.date));
     const concludedM = csM.filter(c => c.result !== 'noshow' && c.result !== 'suivi');
     const closedM = csM.filter(c => c.result === 'closed');
     const noshowM = csM.filter(c => c.result === 'noshow');
@@ -2342,33 +2452,54 @@ function renderComparison(){
     return { ca: ca, rate: rate, noshow: noshow, count: csM.length };
   }
 
-  const cur = statsFor(curKey), prev = statsFor(prevKey);
+  const cur = statsFor(info.curPred);
+  const titleEl = $('cmp-title');
+  if (titleEl) titleEl.textContent = info.mode === 'thismonth' ? 'Ce mois vs mois dernier'
+    : info.mode === 'alltime' ? 'Depuis le début'
+    : info.curLabel + ' vs ' + info.prevLabel;
+
+  const caLabelEl = $('cmp-ca-label');
+  if (caLabelEl) caLabelEl.textContent = info.mode === 'thismonth' ? 'CA ce mois' : 'CA';
+
   $('cmp-ca-cur').textContent = euros(cur.ca);
   $('cmp-rate-cur').textContent = cur.rate + '%';
   $('cmp-noshow-cur').textContent = cur.noshow + '%';
 
   const caDeltaEl = $('cmp-ca-delta');
+  const rateDeltaEl = $('cmp-rate-delta');
+  const noshowDeltaEl = $('cmp-noshow-delta');
+
+  if (!info.hasComparison) {
+    caDeltaEl.textContent = 'Toutes les données';
+    caDeltaEl.className = 'sub';
+    rateDeltaEl.textContent = 'Toutes les données';
+    rateDeltaEl.className = 'sub';
+    noshowDeltaEl.textContent = 'Toutes les données';
+    noshowDeltaEl.className = 'sub';
+    return;
+  }
+
+  const prev = statsFor(info.prevPred);
+
   if (prev.ca === 0) {
-    caDeltaEl.textContent = cur.ca > 0 ? 'vs 0 € le mois dernier' : 'Pas encore de données le mois dernier';
+    caDeltaEl.textContent = cur.ca > 0 ? 'vs 0 € (' + info.prevLabel + ')' : 'Pas encore de données (' + info.prevLabel + ')';
     caDeltaEl.className = 'sub';
   } else {
     const d = Math.round((cur.ca - prev.ca) / prev.ca * 100);
-    caDeltaEl.textContent = (d >= 0 ? '+' : '') + d + '% vs mois dernier';
+    caDeltaEl.textContent = (d >= 0 ? '+' : '') + d + '% vs ' + info.prevLabel;
     caDeltaEl.className = 'sub delta ' + (d >= 0 ? 'up' : 'down');
   }
 
-  const rateDeltaEl = $('cmp-rate-delta');
   const dr = cur.rate - prev.rate;
-  rateDeltaEl.textContent = (dr >= 0 ? '+' : '') + dr + ' pts vs mois dernier';
+  rateDeltaEl.textContent = (dr >= 0 ? '+' : '') + dr + ' pts vs ' + info.prevLabel;
   rateDeltaEl.className = 'sub delta ' + (dr >= 0 ? 'up' : 'down');
 
-  const noshowDeltaEl = $('cmp-noshow-delta');
   if (prev.count === 0) {
-    noshowDeltaEl.textContent = cur.count > 0 ? 'vs 0% le mois dernier' : 'Pas encore de données le mois dernier';
+    noshowDeltaEl.textContent = cur.count > 0 ? 'vs 0% (' + info.prevLabel + ')' : 'Pas encore de données (' + info.prevLabel + ')';
     noshowDeltaEl.className = 'sub';
   } else {
     const dn = cur.noshow - prev.noshow;
-    noshowDeltaEl.textContent = (dn >= 0 ? '+' : '') + dn + ' pts vs mois dernier';
+    noshowDeltaEl.textContent = (dn >= 0 ? '+' : '') + dn + ' pts vs ' + info.prevLabel;
     noshowDeltaEl.className = 'sub delta ' + (dn <= 0 ? 'up' : 'down');
   }
 }
@@ -2907,8 +3038,10 @@ function useAgendaEvent(source, i){
 
 function exportPdf(){
   const scopeLabel = filter === 'tous' ? 'Tous les infopreneurs' : clientName(filter);
+  const info = getStatsPeriodInfo();
+  const periodLabel = info.mode === 'thismonth' ? 'Ce mois' : info.curLabel;
   const dateStr = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-  $('print-meta').textContent = 'Closing Tracker — Export du ' + dateStr + ' — ' + scopeLabel;
+  $('print-meta').textContent = 'Closing Tracker — Export du ' + dateStr + ' — ' + scopeLabel + ' — ' + periodLabel;
   renderCharts();
   setTimeout(() => { window.print(); }, 250);
 }
@@ -2927,6 +3060,17 @@ function init(){
   statsDefaultOrder = [...document.querySelectorAll('#view-stats .card[data-card-id]')].map(c => c.dataset.cardId);
   statsCardOrder = read(KEYS.statsCardOrder, []) || [];
   initStatsReorder();
+  const persistedPeriod = read(KEYS.statsPeriod, null);
+  if (persistedPeriod && persistedPeriod.mode) {
+    statsPeriodMode = persistedPeriod.mode;
+    statsPeriodMonth = persistedPeriod.month || monthKey(today());
+    statsPeriodYear = persistedPeriod.year || new Date().getFullYear();
+  } else {
+    statsPeriodMode = 'alltime';
+    statsPeriodMonth = monthKey(today());
+    statsPeriodYear = new Date().getFullYear();
+  }
+  renderStatsPeriodUI();
   $('call-date').value = today();
   $('prime-date').value = today();
   $('suivi-date').value = today();
