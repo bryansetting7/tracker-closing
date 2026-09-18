@@ -539,6 +539,12 @@
           <span class="v" id="cmp-rate-cur">0%</span>
           <span class="sub" id="cmp-rate-delta">—</span>
         </div>
+        <div class="sep"></div>
+        <div class="col">
+          <span class="k">Taux no-show</span>
+          <span class="v" id="cmp-noshow-cur">0%</span>
+          <span class="sub" id="cmp-noshow-delta">—</span>
+        </div>
       </div>
     </div>
     <div class="card" data-card-id="revenu">
@@ -638,7 +644,7 @@
 
 <nav class="tabbar">
   <button type="button" class="on" id="tab-suivi" onclick="setTab('suivi')"><span class="dot"></span>Suivi<span class="tab-badge hide" id="suivi-badge"></span></button>
-  <button type="button" id="tab-ajouter" onclick="setTab('ajouter')"><span class="dot"></span>Ajouter</button>
+  <button type="button" id="tab-ajouter" onclick="goToAjouter()"><span class="dot"></span>Ajouter</button>
   <button type="button" id="tab-agenda" onclick="setTab('agenda')"><span class="dot"></span>Agenda</button>
   <button type="button" id="tab-historique" onclick="setTab('historique')"><span class="dot"></span>Historique</button>
   <button type="button" id="tab-prospects" onclick="setTab('prospects')"><span class="dot"></span>Prospects</button>
@@ -808,6 +814,7 @@ let prospectTags = {};
 let prospectInfo = {};
 let tab = 'suivi', filter = 'tous', mode = 'call', statusFilter = 'tous';
 let callClientId = null, callResult = null, primeClientId = null;
+let returnTabAfterCall = null;
 let editingCallId = null;
 let statsCardOrder = [], statsDefaultOrder = [];
 let currentProspectKey = null;
@@ -879,6 +886,11 @@ function setTab(t){
   if (t === 'stats') renderCharts();
   if (t === 'agenda') { updateAgendaCardVisibility(); renderAgendaEvents(); }
   if (t === 'prospects') renderProspectsTab();
+}
+
+function goToAjouter(){
+  returnTabAfterCall = null;
+  setTab('ajouter');
 }
 
 function setFilter(f){
@@ -1310,10 +1322,14 @@ function addCall(){
   $('duplicate-warning').classList.add('hide');
   selectedOfferId = null; selectedOfferName = null;
   setCallClient(null); setResult(null);
-  render(); setTab('suivi');
+  render();
+  const backTo = returnTabAfterCall;
+  returnTabAfterCall = null;
+  setTab(backTo || 'suivi');
 }
 
 function editCall(id){
+  returnTabAfterCall = null;
   const c = calls.find(x => x.id === id);
   if (!c) return;
   editingCallId = id;
@@ -1602,6 +1618,7 @@ function duplicateProspectCall(){
   const clientId = entries.length ? entries[0].clientId : currentProspectClientId;
   if (!prospectName || !clientId) return;
   closeProspectCard();
+  returnTabAfterCall = null;
   setTab('ajouter');
   setMode('call');
   $('prospect').value = prospectName;
@@ -2318,14 +2335,17 @@ function renderComparison(){
     const psM = ps.filter(p => monthKey(p.date) === key);
     const concludedM = csM.filter(c => c.result !== 'noshow' && c.result !== 'suivi');
     const closedM = csM.filter(c => c.result === 'closed');
+    const noshowM = csM.filter(c => c.result === 'noshow');
     const ca = closedM.reduce((a,c) => a + (c.commission || 0), 0) + psM.reduce((a,p) => a + (p.montant || 0), 0);
     const rate = concludedM.length ? Math.round(closedM.length / concludedM.length * 100) : 0;
-    return { ca: ca, rate: rate };
+    const noshow = csM.length ? Math.round(noshowM.length / csM.length * 100) : 0;
+    return { ca: ca, rate: rate, noshow: noshow, count: csM.length };
   }
 
   const cur = statsFor(curKey), prev = statsFor(prevKey);
   $('cmp-ca-cur').textContent = euros(cur.ca);
   $('cmp-rate-cur').textContent = cur.rate + '%';
+  $('cmp-noshow-cur').textContent = cur.noshow + '%';
 
   const caDeltaEl = $('cmp-ca-delta');
   if (prev.ca === 0) {
@@ -2341,6 +2361,16 @@ function renderComparison(){
   const dr = cur.rate - prev.rate;
   rateDeltaEl.textContent = (dr >= 0 ? '+' : '') + dr + ' pts vs mois dernier';
   rateDeltaEl.className = 'sub delta ' + (dr >= 0 ? 'up' : 'down');
+
+  const noshowDeltaEl = $('cmp-noshow-delta');
+  if (prev.count === 0) {
+    noshowDeltaEl.textContent = cur.count > 0 ? 'vs 0% le mois dernier' : 'Pas encore de données le mois dernier';
+    noshowDeltaEl.className = 'sub';
+  } else {
+    const dn = cur.noshow - prev.noshow;
+    noshowDeltaEl.textContent = (dn >= 0 ? '+' : '') + dn + ' pts vs mois dernier';
+    noshowDeltaEl.className = 'sub delta ' + (dn <= 0 ? 'up' : 'down');
+  }
 }
 
 function exportData(){
@@ -2868,6 +2898,7 @@ function useAgendaEvent(source, i){
   setMode('call');
   if (name) $('prospect').value = name;
   if (e.start && e.start.dateTime) $('call-date').value = e.start.dateTime.split('T')[0];
+  returnTabAfterCall = 'agenda';
   setTab('ajouter');
   if (!name) {
     alert('Prénom non détecté automatiquement dans cet événement — vérifie et complète le champ toi-même.');
