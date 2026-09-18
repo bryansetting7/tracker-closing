@@ -582,7 +582,7 @@
       <div class="chart-wrap"><canvas id="chart-objections"></canvas></div>
       <div class="chart-empty hide" id="chart-objections-empty"><span class="t">Aucune objection notée</span>Ajoute des objections sur tes calls pour repérer les tendances.</div>
     </div>
-    <div class="card" data-card-id="taux">
+    <div class="card" id="taux-card" data-card-id="taux">
       <div class="cap-row"><div class="cap">Taux de closing par infopreneur</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
       <div class="chart-wrap"><canvas id="chart-taux"></canvas></div>
       <div class="chart-empty hide" id="chart-taux-empty"><span class="t">Pas encore de taux à afficher</span>Ajoute des infopreneurs et des calls pour voir ce graphique.</div>
@@ -2111,6 +2111,7 @@ function renderComparatifTable(info){
   const card = $('comparatif-card');
   const el = $('comparatif-table');
   if (!card || !el) return;
+  if (filter !== 'tous') { card.classList.add('hide'); return; }
   const pred = info ? info.curPred : () => true;
   const rows = clients.map(c => {
     const clientCalls = calls.filter(x => x.clientId === c.id && pred(x.date));
@@ -2389,6 +2390,15 @@ function renderCharts(){
   }
 
   renderComparatifTable(statsInfo);
+
+  const tauxCard = $('taux-card');
+  if (filter !== 'tous') {
+    if (chartTaux) { chartTaux.destroy(); chartTaux = null; }
+    if (tauxCard) tauxCard.classList.add('hide');
+    applyStatsCardOrder();
+    return;
+  }
+  if (tauxCard) tauxCard.classList.remove('hide');
 
   const tauxData = clients.map(c => {
     const clientCalls = calls.filter(x => x.clientId === c.id && statsInfo.curPred(x.date) && x.result !== 'noshow' && x.result !== 'suivi');
