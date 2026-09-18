@@ -517,7 +517,7 @@
     </div>
     <div class="card hide" id="agenda-connect-card">
       <div class="cap">Google Agenda</div>
-      <div class="note" style="margin-top:6px" id="agenda-status-note">Affiche tes rendez-vous passés et à venir, et pré-remplit un call en un clic.</div>
+      <div class="note" style="margin-top:6px" id="agenda-status-note">Affiche tes rendez-vous passés et à venir, et pré-remplit un call en un clic. Une fois connecté, l'appli s'y reconnecte ensuite automatiquement à chaque ouverture — plus besoin de recliquer à chaque fois.</div>
       <button type="button" class="btn ghost" style="margin-top:10px" id="agenda-connect-btn" onclick="connectGoogleCalendar()">Connecter Google Agenda</button>
     </div>
     <div class="seg hide" id="agenda-subfilter">
@@ -597,10 +597,31 @@
       </div>
       <div class="note hide cmp-objectif-note" id="cmp-yearly-objectif"></div>
     </div>
+    <div class="card" data-card-id="panier-moyen">
+      <div class="cap-row"><div class="cap">Panier moyen par vente</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
+      <div class="split" style="margin-top:6px;padding-top:0;border-top:none">
+        <div class="col">
+          <span class="k">Panier moyen</span>
+          <span class="v" id="panier-avg-cur">0 €</span>
+          <span class="sub" id="panier-avg-delta">—</span>
+        </div>
+        <div class="sep"></div>
+        <div class="col">
+          <span class="k">Ventes closées</span>
+          <span class="v num" id="panier-count-cur">0</span>
+        </div>
+      </div>
+      <div class="note hide" id="panier-empty" style="margin-top:8px">Pas encore de vente sur cette période.</div>
+    </div>
     <div class="card" data-card-id="revenu">
       <div class="cap-row"><div class="cap">Revenu par mois</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
       <div class="chart-wrap"><canvas id="chart-revenu"></canvas></div>
       <div class="chart-empty hide" id="chart-revenu-empty"><span class="t">Pas encore de revenu</span>Ajoute des calls closés pour voir ton évolution mensuelle.</div>
+    </div>
+    <div class="card" data-card-id="volume-calls">
+      <div class="cap-row"><div class="cap">Volume de calls par mois</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
+      <div class="chart-wrap"><canvas id="chart-volume"></canvas></div>
+      <div class="chart-empty hide" id="chart-volume-empty"><span class="t">Pas encore de calls</span>Ajoute des calls pour voir ton volume d'activité mensuel.</div>
     </div>
     <div class="card" data-card-id="objectifs">
       <div class="cap-row"><div class="cap">Historique des objectifs (6 derniers mois)</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
@@ -621,6 +642,11 @@
       <div class="cap-row"><div class="cap">Taux de closing par infopreneur</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
       <div class="chart-wrap"><canvas id="chart-taux"></canvas></div>
       <div class="chart-empty hide" id="chart-taux-empty"><span class="t">Pas encore de taux à afficher</span>Ajoute des infopreneurs et des calls pour voir ce graphique.</div>
+    </div>
+    <div class="card" data-card-id="repartition">
+      <div class="cap-row"><div class="cap">Répartition des résultats de call</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
+      <div class="chart-wrap"><canvas id="chart-repartition"></canvas></div>
+      <div class="chart-empty hide" id="chart-repartition-empty"><span class="t">Aucun call sur cette période</span>Ajoute des calls pour voir la répartition de tes résultats.</div>
     </div>
     <div class="card hide" id="comparatif-card" data-card-id="comparatif">
       <div class="cap-row"><div class="cap">Comparatif entre infopreneurs</div><span class="drag-handle" title="Glisser pour réorganiser">⠿</span></div>
@@ -1989,7 +2015,7 @@ function renderClientsSettings(){
   `).join('');
 }
 
-let chartRevenu = null, chartObjections = null, chartTaux = null, chartOffres = null;
+let chartRevenu = null, chartObjections = null, chartTaux = null, chartOffres = null, chartRepartition = null, chartVolume = null;
 
 function makeValueLabelPlugin(values, format, color){
   return {
@@ -2185,6 +2211,15 @@ function chartColors(){
     : { grid: '#f2f0eb', border: '#e0ddd6', tick: '#5f5e58', label: '#16181b', tauxBar: '#16181b', tauxBarHover: '#2b2e33' };
 }
 
+// Same palette as the Résultat buttons' .on-green/.on-red/.on-gray/.on-blue states,
+// so the "répartition des résultats" chart reads consistently with the rest of the app.
+function statusColors(){
+  const dark = document.body.classList.contains('dark');
+  return dark
+    ? { closed: '#2f9d63', perdu: '#d6544a', noshow: '#8d8b86', suivi: '#7183c2' }
+    : { closed: '#1c8a53', perdu: '#b83a2e', noshow: '#8a8880', suivi: '#4d5b8c' };
+}
+
 function renderComparatifTable(info){
   const card = $('comparatif-card');
   const el = $('comparatif-table');
@@ -2323,6 +2358,7 @@ function initStatsReorder(){
 
 function renderCharts(){
   renderComparison();
+  renderPanierMoyen();
   renderObjectifHistory();
   const cc = chartColors();
   const statsInfo = getStatsPeriodInfo();
@@ -2373,6 +2409,50 @@ function renderCharts(){
         }
       },
       plugins: [ makeValueLabelPlugin(monthKeys.map(k => monthTotals[k]), euros, cc.label) ]
+    });
+  }
+
+  const monthCallCounts = {};
+  cs.forEach(c => {
+    const k = monthKey(c.date);
+    monthCallCounts[k] = (monthCallCounts[k] || 0) + 1;
+  });
+  const callMonthKeys = Object.keys(monthCallCounts).sort();
+
+  if (chartVolume) chartVolume.destroy();
+  if (callMonthKeys.length === 0) {
+    $('chart-volume-empty').classList.remove('hide');
+    $('chart-volume').parentElement.classList.add('hide');
+  } else {
+    $('chart-volume-empty').classList.add('hide');
+    $('chart-volume').parentElement.classList.remove('hide');
+    chartVolume = new Chart($('chart-volume').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: callMonthKeys.map(monthLabel),
+        datasets: [{
+          data: callMonthKeys.map(k => monthCallCounts[k]),
+          backgroundColor: '#4d5b8c',
+          hoverBackgroundColor: '#3c4870',
+          borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
+          borderSkipped: false,
+          barPercentage: 0.5,
+          categoryPercentage: 0.6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: Object.assign({}, TOOLTIP_STYLE, { callbacks: { title: () => '', label: ctx => ctx.raw + (ctx.raw > 1 ? ' calls' : ' call') } })
+        },
+        scales: {
+          y: { beginAtZero: true, grace: '15%', ticks: { stepSize: 1, maxTicksLimit: 6, color: cc.tick, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: cc.grid }, border: { display: false } },
+          x: { ticks: { color: cc.tick, font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: cc.border } }
+        }
+      },
+      plugins: [ makeValueLabelPlugin(callMonthKeys.map(k => monthCallCounts[k]), v => String(v), cc.label) ]
     });
   }
 
@@ -2464,6 +2544,59 @@ function renderCharts(){
         }
       },
       plugins: [ makeValueLabelPlugin(objKeys.map(k => objectionCounts[k]), v => String(v), cc.label) ]
+    });
+  }
+
+  const sc = statusColors();
+  const resultCounts = { closed: 0, perdu: 0, noshow: 0, suivi: 0 };
+  cs.forEach(c => {
+    if (c.result === 'closed') resultCounts.closed++;
+    else if (c.result === 'noshow') resultCounts.noshow++;
+    else if (c.result === 'suivi') resultCounts.suivi++;
+    else resultCounts.perdu++;
+  });
+  const resultTotal = resultCounts.closed + resultCounts.perdu + resultCounts.noshow + resultCounts.suivi;
+  const resultDefs = [
+    { key: 'closed', label: 'Closé', color: sc.closed },
+    { key: 'perdu', label: 'Perdu', color: sc.perdu },
+    { key: 'noshow', label: 'Absent', color: sc.noshow },
+    { key: 'suivi', label: 'Suivi prévu', color: sc.suivi }
+  ].filter(d => resultCounts[d.key] > 0);
+
+  if (chartRepartition) chartRepartition.destroy();
+  if (resultTotal === 0) {
+    $('chart-repartition-empty').classList.remove('hide');
+    $('chart-repartition').parentElement.classList.add('hide');
+  } else {
+    $('chart-repartition-empty').classList.add('hide');
+    $('chart-repartition').parentElement.classList.remove('hide');
+    chartRepartition = new Chart($('chart-repartition').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: resultDefs.map(d => d.label),
+        datasets: [{
+          data: resultDefs.map(d => resultCounts[d.key]),
+          backgroundColor: resultDefs.map(d => d.color),
+          borderRadius: { topLeft: 0, bottomLeft: 0, topRight: 4, bottomRight: 4 },
+          borderSkipped: false,
+          barPercentage: 0.5,
+          categoryPercentage: 0.6
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { right: 46 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: Object.assign({}, TOOLTIP_STYLE, { callbacks: { title: () => '', label: ctx => ctx.raw + (ctx.raw > 1 ? ' calls' : ' call') + ' (' + Math.round(ctx.raw / resultTotal * 100) + '%)' } })
+        },
+        scales: {
+          x: { beginAtZero: true, grace: '15%', ticks: { stepSize: 1, color: cc.tick, font: { family: 'Instrument Sans', size: 10 } }, grid: { color: cc.grid }, border: { display: false } },
+          y: { ticks: { color: cc.tick, font: { family: 'Instrument Sans', size: 11 } }, grid: { display: false }, border: { color: cc.border } }
+        }
+      },
+      plugins: [ makeValueLabelPlugin(resultDefs.map(d => resultCounts[d.key]), v => v + ' (' + Math.round(v / resultTotal * 100) + '%)', cc.label) ]
     });
   }
 
@@ -2613,6 +2746,52 @@ function renderComparison(){
   }
 }
 
+function renderPanierMoyen(){
+  const avgEl = $('panier-avg-cur');
+  const countEl = $('panier-count-cur');
+  const emptyEl = $('panier-empty');
+  const deltaEl = $('panier-avg-delta');
+  if (!avgEl || !countEl) return;
+
+  const cs = scoped(calls);
+  const info = getStatsPeriodInfo();
+
+  function statsFor(pred){
+    const closedM = cs.filter(c => pred(c.date) && c.result === 'closed');
+    const total = closedM.reduce((a,c) => a + (c.commission || 0), 0);
+    return { avg: closedM.length ? Math.round(total / closedM.length) : 0, count: closedM.length };
+  }
+
+  const cur = statsFor(info.curPred);
+
+  if (cur.count === 0) {
+    avgEl.textContent = '0 €';
+    countEl.textContent = '0';
+    if (deltaEl) { deltaEl.textContent = '—'; deltaEl.className = 'sub'; }
+    if (emptyEl) emptyEl.classList.remove('hide');
+    return;
+  }
+  if (emptyEl) emptyEl.classList.add('hide');
+  avgEl.textContent = euros(cur.avg);
+  countEl.textContent = String(cur.count);
+
+  if (!deltaEl) return;
+  if (!info.hasComparison) {
+    deltaEl.textContent = 'Toutes les données';
+    deltaEl.className = 'sub';
+    return;
+  }
+  const prev = statsFor(info.prevPred);
+  if (prev.avg === 0) {
+    deltaEl.textContent = cur.avg > 0 ? 'vs 0 € (' + info.prevLabel + ')' : 'Pas encore de données (' + info.prevLabel + ')';
+    deltaEl.className = 'sub';
+  } else {
+    const d = Math.round((cur.avg - prev.avg) / prev.avg * 100);
+    deltaEl.textContent = (d >= 0 ? '+' : '') + d + '% vs ' + info.prevLabel;
+    deltaEl.className = 'sub delta ' + (d >= 0 ? 'up' : 'down');
+  }
+}
+
 function exportData(){
   const payload = {
     version: 1,
@@ -2744,12 +2923,17 @@ function importData(input){
 // Identifiant OAuth Google partagé par l'application : un seul projet Google Cloud
 // (créé et géré par l'auteur de l'app) sert à connecter Agenda/Drive pour tous les utilisateurs.
 const GOOGLE_CLIENT_ID = '788705143316-273a28teuqcuogu9kr5avrp4pboitt1q.apps.googleusercontent.com';
+const CALENDAR_EVER_CONNECTED_KEY = 'closing-calendar-ever-connected';
 let gisTokenClient = null;
 let googleAccessToken = null;
 let upcomingAgendaEvents = [];
 let pastAgendaEvents = [];
 let agendaFilter = 'upcoming';
 let dismissedAgendaEvents = [];
+
+function markCalendarEverConnected(){
+  try { localStorage.setItem(CALENDAR_EVER_CONNECTED_KEY, '1'); } catch(e) {}
+}
 
 function toggleDarkMode(on){
   document.body.classList.toggle('dark', on);
@@ -2893,6 +3077,7 @@ function initGoogleAuth(){
     callback: (resp) => {
       if (resp && resp.access_token) {
         googleAccessToken = resp.access_token;
+        markCalendarEverConnected();
         $('agenda-connect-btn').textContent = 'Actualiser mes rendez-vous';
         fetchAgendaEvents();
       } else if ($('agenda-events')) {
@@ -2910,6 +3095,32 @@ function connectGoogleCalendar(){
   }
   $('agenda-events').innerHTML = '<div class="note">Connexion…</div>';
   gisTokenClient.requestAccessToken({ prompt: googleAccessToken ? '' : 'consent' });
+}
+
+function attemptAutoCalendarReconnect(attempt){
+  attempt = attempt || 0;
+  if (googleAccessToken) return;
+  if (localStorage.getItem(CALENDAR_EVER_CONNECTED_KEY) !== '1') return;
+  if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+    if (attempt < 25) setTimeout(() => attemptAutoCalendarReconnect(attempt + 1), 200);
+    return;
+  }
+  if (!gisTokenClient && !initGoogleAuth()) return;
+  const originalCallback = gisTokenClient.callback;
+  gisTokenClient.callback = (resp) => {
+    gisTokenClient.callback = originalCallback;
+    if (resp && resp.access_token) {
+      googleAccessToken = resp.access_token;
+      markCalendarEverConnected();
+      if ($('agenda-connect-btn')) $('agenda-connect-btn').textContent = 'Actualiser mes rendez-vous';
+      fetchAgendaEvents();
+    }
+  };
+  try {
+    gisTokenClient.requestAccessToken({ prompt: '' });
+  } catch (e) {
+    gisTokenClient.callback = originalCallback;
+  }
 }
 
 async function fetchAgendaEvents(isSilentRetry){
@@ -3382,6 +3593,7 @@ function init(){
   showLockScreenIfNeeded();
   render();
   attemptAutoDriveReconnect();
+  attemptAutoCalendarReconnect();
 }
 
 init();
